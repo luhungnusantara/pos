@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="POS Rokok">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14b8a6"/><stop offset="1" stop-color="#115e59"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#g)"/>
+  <!-- badan rokok -->
+  <rect x="104" y="222" width="230" height="68" rx="14" fill="#ffffff"/>
+  <rect x="334" y="222" width="74" height="68" rx="14" fill="#fcd34d"/>
+  <rect x="270" y="222" width="14" height="68" fill="#e2e8f0"/>
+  <!-- asap -->
+  <path d="M150 186c0-26 34-26 34-52s-34-26-34-52" fill="none" stroke="#ffffff" stroke-opacity=".75"
+        stroke-width="16" stroke-linecap="round"/>
+  <path d="M226 186c0-26 34-26 34-52s-34-26-34-52" fill="none" stroke="#ffffff" stroke-opacity=".45"
+        stroke-width="16" stroke-linecap="round"/>
+  <!-- garis nota -->
+  <rect x="104" y="330" width="304" height="18" rx="9" fill="#ffffff" fill-opacity=".85"/>
+  <rect x="104" y="368" width="210" height="18" rx="9" fill="#ffffff" fill-opacity=".55"/>
+</svg>
