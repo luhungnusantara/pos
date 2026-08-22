@@ -4,6 +4,7 @@ import { stokKonsinyasi, nilaiPersediaan, produkMenipis, TIPE_MUTASI, rincianKon
 import { setJudul, setTopbar, setFab, kosongState, statTile, badge, sukses, gagal } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
+import { isOwner, bolehLihatModal } from '../core/peran.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, unduh, toCSV,
 } from '../core/utils.js';
@@ -17,16 +18,20 @@ function halamanRingkas(view) {
   const menipis = produkMenipis();
   const titipTotal = stokKonsinyasi();
 
-  setJudul('Stok', `${db.produk.length} produk · nilai ${rp(nilaiPersediaan())}`);
+  setJudul('Stok', bolehLihatModal()
+    ? `${db.produk.length} produk · nilai ${rp(nilaiPersediaan())}`
+    : `${db.produk.length} produk terdaftar`);
   setTopbar([
     { teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: eksporStok },
-    { teks: 'Opname', ikon: '📋', onClick: () => pergi('opname/baru') },
+    ...(isOwner() ? [{ teks: 'Opname', ikon: '📋', onClick: () => pergi('opname/baru') }] : []),
   ]);
-  setFab({ ikon: '📥', teks: 'Stok masuk', onClick: () => pergi('pembelian/baru') });
+  setFab(isOwner() ? { ikon: '📥', teks: 'Stok masuk', onClick: () => pergi('pembelian/baru') } : null);
 
   view.innerHTML = `
     <div class="grid g4 mb12">
-      ${statTile({ label: 'Nilai Persediaan', nilai: rp(nilaiPersediaan()), sub: 'gudang (harga beli)', warna: 'info', ikon: '📦' })}
+      ${bolehLihatModal()
+        ? statTile({ label: 'Nilai Persediaan', nilai: rp(nilaiPersediaan()), sub: 'gudang (harga beli)', warna: 'info', ikon: '📦' })
+        : statTile({ label: 'Produk Aktif', nilai: num(db.produk.filter(p => p.aktif !== false).length), sub: 'siap dijual', warna: 'info', ikon: '🚬' })}
       ${statTile({ label: 'Stok Gudang', nilai: num(sum(db.produk, p => p.stok)), sub: 'unit', ikon: '🏬' })}
       ${statTile({ label: 'Di Mitra', nilai: num(titipTotal), sub: 'barang konsinyasi', warna: 'violet', ikon: '🤝' })}
       ${statTile({ label: 'Stok Menipis', nilai: num(menipis.length), sub: menipis.length ? 'segera restok' : 'aman', warna: menipis.length ? 'bad' : 'ok', ikon: '⚠️' })}
@@ -35,7 +40,7 @@ function halamanRingkas(view) {
     ${menipis.length ? `
       <div class="card mb12" style="border-color:var(--warn)">
         <div class="card-head"><h2>⚠️ Perlu Segera Restok</h2>
-          <a class="btn btn-sm btn-soft" href="#/pembelian/baru">📥 Buat Pembelian</a></div>
+          ${isOwner() ? '<a class="btn btn-sm btn-soft" href="#/pembelian/baru">📥 Buat Pembelian</a>' : ''}</div>
         <div class="list">
           ${menipis.slice(0, 6).map(p => `<div class="row-item" data-id="${p.id}">
             <div class="avatar w">${esc(p.kode.slice(0, 3))}</div>
@@ -57,7 +62,7 @@ function halamanRingkas(view) {
     <div class="card">
       <div class="card-head"><h2>Posisi Stok</h2><span class="muted xs">ketuk untuk kartu stok</span></div>
       <div class="table-wrap"><table class="tbl stack" id="tabelStok">
-        <thead><tr><th>Produk</th><th class="num">Gudang</th><th class="num">Di Mitra</th><th class="num">Total</th><th class="num">Nilai</th></tr></thead>
+        <thead><tr><th>Produk</th><th class="num">Gudang</th><th class="num">Di Mitra</th><th class="num">Total</th>${bolehLihatModal() ? '<th class="num">Nilai</th>' : ''}</tr></thead>
         <tbody id="tbody"></tbody>
       </table></div>
     </div>`;
@@ -71,7 +76,7 @@ function halamanRingkas(view) {
     arr = sortBy(arr, p => p.nama.toLowerCase());
 
     if (!arr.length) {
-      tbody.innerHTML = `<tr><td colspan="5">${kosongState('📦', 'Tidak ada produk', 'Ubah filter atau tambahkan produk baru.')}</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${bolehLihatModal() ? 5 : 4}">${kosongState('📦', 'Tidak ada produk', 'Ubah filter atau tambahkan produk baru.')}</td></tr>`;
       return;
     }
     tbody.innerHTML = arr.map(p => {
@@ -83,7 +88,7 @@ function halamanRingkas(view) {
         <td data-l="Gudang" class="num"><span class="${g <= 0 ? 'neg' : ''}">${num(g)}</span></td>
         <td data-l="Di Mitra" class="num"><span>${t > 0 ? num(t) : '—'}</span></td>
         <td data-l="Total" class="num strong"><span>${num(g + t)}</span></td>
-        <td data-l="Nilai" class="num"><span>${rp(g * toNum(p.hargaBeli))}</span></td>
+        ${bolehLihatModal() ? `<td data-l="Nilai" class="num"><span>${rp(g * toNum(p.hargaBeli))}</span></td>` : ''}
       </tr>`;
     }).join('');
   };
@@ -108,8 +113,10 @@ function eksporStok() {
     Kode: p.kode, Produk: p.nama, Merk: p.merk || '', Satuan: p.satuan || '',
     StokGudang: toNum(p.stok), DiMitra: stokKonsinyasi(p.id),
     Total: toNum(p.stok) + stokKonsinyasi(p.id),
-    StokMinimum: toNum(p.minStok), HargaBeli: toNum(p.hargaBeli),
-    NilaiPersediaan: toNum(p.stok) * toNum(p.hargaBeli),
+    StokMinimum: toNum(p.minStok),
+    ...(bolehLihatModal()
+      ? { HargaBeli: toNum(p.hargaBeli), NilaiPersediaan: toNum(p.stok) * toNum(p.hargaBeli) }
+      : {}),
     HargaAgen: toNum(p.hargaAgen), HargaReseller: toNum(p.hargaReseller),
   })), null), 'text/csv');
   sukses('Data stok diekspor');

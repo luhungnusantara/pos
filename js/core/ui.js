@@ -1,5 +1,5 @@
 /* ui.js — komponen antarmuka: toast, modal, form, pemilih item */
-import { esc, toNum, num, $, $$, cocok, debounce, initial } from './utils.js';
+import { esc, toNum, toInt, num, $, $$, cocok, debounce, initial } from './utils.js';
 
 /* =========================================================
    TOAST
@@ -187,7 +187,8 @@ export function bacaForm(root, fields) {
     const el = root.querySelector(`[name="${f.name}"]`);
     if (!el) return;
     if (f.tipe === 'check') out[f.name] = el.checked;
-    else if (f.tipe === 'rupiah' || f.tipe === 'number') out[f.name] = toNum(el.value);
+    else if (f.tipe === 'rupiah') out[f.name] = toInt(el.value);
+    else if (f.tipe === 'number') out[f.name] = toNum(el.value);
     else out[f.name] = el.value.trim();
   });
   return out;
@@ -232,19 +233,41 @@ export function formModal({ judul, fields, data = {}, simpanTeks = 'Simpan', onS
   });
 }
 
-/** format otomatis input bertanda data-rupiah */
+/**
+ * Format otomatis input bertanda data-rupiah.
+ * Nilai dibaca dari digitnya langsung (toInt), bukan dari teks yang sudah
+ * berformat — kalau tidak, pemisah ribuan yang baru disisipkan akan terbaca
+ * ulang sebagai titik desimal dan angkanya runtuh saat digit ke-5 diketik.
+ * Posisi kursor dijaga berdasarkan jumlah digit di sebelah kirinya, sehingga
+ * menyunting di tengah angka tetap terasa wajar.
+ */
 export function pasangRupiah(root = document) {
   $$('[data-rupiah]', root).forEach(el => {
     if (el.dataset.siap) return;
     el.dataset.siap = '1';
+
     el.addEventListener('input', () => {
-      const posEnd = el.selectionStart === el.value.length;
-      const n = toNum(el.value);
-      el.value = el.value.trim() === '' ? '' : num(n);
-      if (posEnd) el.setSelectionRange(el.value.length, el.value.length);
+      const sebelum = el.value;
+      const caret = el.selectionStart ?? sebelum.length;
+      const digitKiri = sebelum.slice(0, caret).replace(/[^\d]/g, '').length;
+
+      const n = toInt(sebelum);
+      el.value = sebelum.replace(/[^\d]/g, '') === '' ? '' : num(n);
+
+      // kembalikan kursor ke posisi setelah digit ke-N yang sama
+      let hitung = 0, posisi = el.value.length;
+      for (let i = 0; i < el.value.length; i++) {
+        if (/\d/.test(el.value[i])) hitung++;
+        if (hitung === digitKiri) { posisi = i + 1; break; }
+      }
+      if (digitKiri === 0) posisi = 0;
+      try { el.setSelectionRange(posisi, posisi); } catch { /* input tersembunyi */ }
+
       el.dispatchEvent(new CustomEvent('nilai', { detail: n, bubbles: true }));
     });
-    el.addEventListener('focus', () => el.select());
+
+    // pilih seluruh isi saat difokuskan agar mudah diganti, kecuali masih kosong
+    el.addEventListener('focus', () => { if (el.value) el.select(); });
   });
 }
 

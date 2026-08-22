@@ -84,6 +84,36 @@ susut pada laporan laba rugi.
 
 ---
 
+## Mode peran perangkat
+
+Aplikasi punya **tiga tampilan** yang dipilih lewat tombol peran di bagian bawah menu
+(atau menu Pengaturan). Peran membatasi menu **dan menyembunyikan angka rahasia usaha**:
+
+| | 👑 Pemilik | 🧑‍💼 Sales | 🏪 Agen / Reseller |
+|---|---|---|---|
+| Menu tersedia | seluruhnya (15) | 9 menu | 5 menu |
+| Kasir & konsinyasi | ✅ catat | ✅ catat | 👁️ lihat saja |
+| Data yang tampil | semua | hanya mitra binaan | hanya miliknya sendiri |
+| Harga beli, HPP, laba, margin | ✅ | ❌ | ❌ |
+| Kas, pembelian, hutang, laporan | ✅ | ❌ | ❌ |
+| Stok opname & data induk | ✅ | ❌ | ❌ |
+| Komisi | semua sales + bayar | hanya miliknya | ❌ |
+
+Beranda pun berbeda: **Sales** melihat omzet dan komisinya sendiri beserta capaian target,
+sedangkan **Agen/Reseller** melihat tagihan, barang titipan yang belum terjual, sisa plafon,
+dan riwayat notanya.
+
+Pasang **PIN Pemilik** lewat `Pengaturan → Peran Perangkat` agar perangkat tidak bisa
+dikembalikan ke mode Pemilik oleh orang lain.
+
+> ⚠️ **Batas yang perlu dipahami.** Data tersimpan di perangkat (localStorage), jadi ini
+> pembatasan tampilan pada satu perangkat — **bukan autentikasi jaringan**. Agen yang membuka
+> aplikasi dari HP-nya sendiri akan mulai dengan data kosong. Untuk portal agen sungguhan
+> (tiap mitra masuk dari HP masing-masing dan melihat data live) dibutuhkan server: API,
+> basis data, dan autentikasi.
+
+---
+
 ## Perhitungan komisi
 
 Komisi dihitung **otomatis saat penjualan tersimpan**, termasuk penjualan konsinyasi — yaitu ketika
@@ -113,6 +143,8 @@ css/style.css         seluruh gaya, mobile-first + tema terang/gelap
 js/app.js             titik masuk: menu, tema, drawer, router
 js/core/
   store.js            penyimpanan localStorage + CRUD + event
+  peran.js            kewenangan & penyaringan data per peran
+  ganti-peran.js      dialog pemilihan peran + gerbang PIN
   domain.js           aturan bisnis: stok, konsinyasi, kas, piutang, komisi
   ui.js               modal, toast, form, pemilih item, komponen
   router.js           navigasi hash + pemuatan halaman dinamis
@@ -135,6 +167,7 @@ Setiap halaman mengekspor `render(view, params)`; router memuatnya secara dinami
   situs akan menghapusnya — ekspor cadangan berkala lewat `Pengaturan → Ekspor Cadangan (JSON)`.
 - Satuan jual mengikuti pengaturan produk (Slop / Bungkus / Bal). Kolom *Bungkus per Satuan*
   bersifat informasi.
+- Kolom rupiah menerima angka polos; pemisah ribuan ditambahkan otomatis saat mengetik.
 - Semua laporan dapat diekspor ke **CSV** (pemisah `;`, siap dibuka di Excel Indonesia).
 
 ---

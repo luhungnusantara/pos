@@ -7,6 +7,8 @@ export const VERSI = 1;
 /** struktur database awal */
 const kosong = () => ({
   versi: VERSI,
+  // sesi: peran yang sedang aktif di perangkat ini (owner / sales / mitra)
+  sesi: { peran: 'owner', salesId: '', mitraId: '', sejak: '' },
   pengaturan: {
     namaToko: 'Toko Rokok Jaya',
     pemilik: '',
@@ -17,6 +19,7 @@ const kosong = () => ({
     saldoAwalKas: 0,
     tempoDefault: 14,
     peringatanStok: true,
+    pinOwner: '',           // bila diisi, kembali ke peran Pemilik butuh PIN
   },
   produk: [],
   mitra: [],       // agen & reseller
@@ -131,6 +134,12 @@ export const setPengaturan = patch => {
   db.pengaturan = { ...db.pengaturan, ...patch };
   save();
   return db.pengaturan;
+};
+
+export const setSesi = patch => {
+  db.sesi = { ...(db.sesi || {}), ...patch };
+  save(true);
+  return db.sesi;
 };
 
 /* ---------- cadangan ---------- */

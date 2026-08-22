@@ -153,6 +153,20 @@ function halamanBaru(view) {
   setTopbar([{ teks: 'Kembali', ikon: '←', kelas: 'btn-ghost btn-sm', onClick: () => pergi('pembelian') }]);
   setFab(null);
 
+  /** perbarui angka saja; menggambar ulang saat mengetik akan merebut fokus kolom */
+  const perbaruiAngka = () => {
+    const sub = round2(sum(form.items, i => toNum(i.qty) * toNum(i.harga)));
+    const tot = round2(Math.max(0, sub - toNum(form.diskon)));
+    const isi = (sel, teks) => { const n = view.querySelector(sel); if (n) n.textContent = teks; };
+    isi('#nSubtotal', rp(sub));
+    isi('#nTotal', rp(tot));
+    isi('#sbTotal', rp(tot));
+    isi('#nHutang', rp(Math.max(0, tot - toNum(form.dibayar))));
+    form.items.forEach((i, idx) => isi(`#nBaris${idx}`, rp(toNum(i.qty) * toNum(i.harga))));
+    const simpan = view.querySelector('#btnSimpan');
+    if (simpan) simpan.disabled = !form.items.length;
+  };
+
   const gambar = () => {
     const subtotal = round2(sum(form.items, i => toNum(i.qty) * toNum(i.harga)));
     const total = round2(Math.max(0, subtotal - toNum(form.diskon)));
@@ -193,7 +207,7 @@ function halamanBaru(view) {
                   </div>
                 </div>
                 <div class="cl-right">
-                  <div class="b tabular">${rp(toNum(i.qty) * toNum(i.harga))}</div>
+                  <div class="b tabular" id="nBaris${idx}">${rp(toNum(i.qty) * toNum(i.harga))}</div>
                   <button class="btn btn-xs btn-ghost mt8" data-hapus="${idx}">🗑️</button>
                 </div></div>`;
             }).join('') : kosongState('📦', 'Belum ada barang', 'Tambahkan produk yang dibeli.')}
@@ -206,10 +220,10 @@ function halamanBaru(view) {
         <div class="card">
           <div class="card-head"><h2>💳 Pembayaran</h2></div>
           <div class="card-body">
-            <div class="kv"><span class="k">Subtotal</span><span class="v">${rp(subtotal)}</span></div>
+            <div class="kv"><span class="k">Subtotal</span><span class="v" id="nSubtotal">${rp(subtotal)}</span></div>
             <div class="field mt8"><label>Diskon</label>
               <input class="input num" id="diskon" inputmode="numeric" data-rupiah value="${form.diskon ? num(form.diskon) : ''}" placeholder="0"></div>
-            <div class="kv total"><span class="k">TOTAL</span><span class="v">${rp(total)}</span></div>
+            <div class="kv total"><span class="k">TOTAL</span><span class="v" id="nTotal">${rp(total)}</span></div>
 
             <div class="lbl-t mt12">Cara Bayar</div>
             <div class="seg" id="segBayar">
@@ -223,7 +237,7 @@ function halamanBaru(view) {
                 <div class="field mb0"><label>Jatuh Tempo</label>
                   <input class="input" type="date" id="tempo" value="${form.jatuhTempo}"></div>
               </div>
-              <div class="kv mt8"><span class="k">Hutang</span><span class="v neg">${rp(Math.max(0, total - toNum(form.dibayar)))}</span></div>` : ''}
+              <div class="kv mt8"><span class="k">Hutang</span><span class="v neg" id="nHutang">${rp(Math.max(0, total - toNum(form.dibayar)))}</span></div>` : ''}
             <div class="hint mt12">ℹ️ Harga beli terakhir akan otomatis memperbarui harga beli produk untuk perhitungan laba.</div>
           </div>
         </div>
@@ -231,7 +245,7 @@ function halamanBaru(view) {
     </div>
 
     <div class="sticky-bar">
-      <div class="sb-info"><div class="sb-lbl">Total pembelian</div><div class="sb-val">${rp(total)}</div></div>
+      <div class="sb-info"><div class="sb-lbl">Total pembelian</div><div class="sb-val" id="sbTotal">${rp(total)}</div></div>
       <button class="btn btn-primary" id="btnSimpan" ${form.items.length ? '' : 'disabled'}>✔ Simpan</button>
     </div>`;
 
@@ -241,8 +255,8 @@ function halamanBaru(view) {
     q('#tgl').onchange = e => { form.tanggal = e.target.value || todayISO(); };
     q('#catatan').oninput = e => { form.catatan = e.target.value; };
     q('#tempo') && (q('#tempo').onchange = e => { form.jatuhTempo = e.target.value; });
-    q('#diskon').addEventListener('nilai', e => { form.diskon = e.detail; gambar(); });
-    q('#dibayar')?.addEventListener('nilai', debounce(e => { form.dibayar = e.detail; gambar(); }, 400));
+    q('#diskon').addEventListener('nilai', e => { form.diskon = e.detail; perbaruiAngka(); });
+    q('#dibayar')?.addEventListener('nilai', e => { form.dibayar = e.detail; perbaruiAngka(); });
     q('#segBayar').onclick = e => {
       const b = e.target.closest('[data-v]'); if (!b) return;
       form.bayar = b.dataset.v; gambar();
@@ -261,9 +275,10 @@ function halamanBaru(view) {
       if (v <= 0) form.items.splice(idx, 1); else form.items[idx].qty = v;
       gambar();
     });
-    view.querySelectorAll('[data-harga]').forEach(inp => inp.addEventListener('nilai', debounce(e => {
-      form.items[+inp.dataset.harga].harga = e.detail; gambar();
-    }, 500)));
+    view.querySelectorAll('[data-harga]').forEach(inp => inp.addEventListener('nilai', e => {
+      form.items[+inp.dataset.harga].harga = e.detail;
+      perbaruiAngka();
+    }));
 
     q('#btnSimpan').onclick = () => {
       if (!form.supplier.trim()) return ingat('Isi nama supplier terlebih dahulu');

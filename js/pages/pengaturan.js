@@ -2,6 +2,8 @@
 import { db, setPengaturan, exportDB, importDB, resetDB, kosongkanTransaksi, VERSI } from '../core/store.js';
 import { setJudul, setTopbar, setFab, formModal, konfirmasi, sukses, gagal, statTile } from '../core/ui.js';
 import { segarkan } from '../core/router.js';
+import { PERAN, peranAktif, namaPengguna, pinDipasang } from '../core/peran.js';
+import { dialogGantiPeran } from '../core/ganti-peran.js';
 import { terapkanTema } from '../app.js';
 import { esc, rp, num, unduh, todayISO } from '../core/utils.js';
 
@@ -36,6 +38,26 @@ function formTransaksi() {
     ],
     data: db.pengaturan,
     onSimpan: nilai => { setPengaturan(nilai); sukses('Preferensi disimpan'); segarkan(); },
+  });
+}
+
+function formPin() {
+  formModal({
+    judul: '🔒 PIN Pemilik',
+    fields: [
+      {
+        name: 'pinOwner', label: 'PIN (4–8 angka)', lebar: 'full', placeholder: 'kosongkan untuk menonaktifkan',
+        hint: 'Diminta setiap kali perangkat dikembalikan ke peran Pemilik',
+      },
+    ],
+    data: { pinOwner: db.pengaturan.pinOwner || '' },
+    onSimpan: nilai => {
+      const pin = String(nilai.pinOwner || '').trim();
+      if (pin && !/^\d{4,8}$/.test(pin)) { gagal('PIN harus 4–8 angka'); return false; }
+      setPengaturan({ pinOwner: pin });
+      sukses(pin ? 'PIN pemilik diaktifkan' : 'PIN pemilik dinonaktifkan');
+      segarkan();
+    },
   });
 }
 
@@ -94,6 +116,22 @@ export function render(view) {
         <div class="kv"><span class="k">Saldo awal kas</span><span class="v">${rp(p.saldoAwalKas)}</span></div>
         <div class="kv"><span class="k">Tempo kredit default</span><span class="v">${num(p.tempoDefault)} hari</span></div>
         <div class="kv"><span class="k">Peringatan stok menipis</span><span class="v">${p.peringatanStok === false ? 'Nonaktif' : 'Aktif'}</span></div>
+      </div>
+    </div>
+
+    <div class="card mb12">
+      <div class="card-head"><h2>👥 Peran Perangkat</h2>
+        <button class="btn btn-sm" id="gantiPeran">⇄ Ganti</button></div>
+      <div class="card-body">
+        <div class="kv"><span class="k">Sedang aktif</span>
+          <span class="v">${PERAN[peranAktif()].ikon} ${esc(namaPengguna())} — ${esc(PERAN[peranAktif()].label)}</span></div>
+        <div class="kv"><span class="k">PIN Pemilik</span>
+          <span class="v">${pinDipasang() ? '🔒 Aktif' : 'Tidak aktif'}
+            <button class="btn btn-xs btn-ghost" id="ubahPin">${pinDipasang() ? 'Ubah' : 'Pasang'}</button></span></div>
+        <div class="hint mt8">Mode <b>Sales</b> hanya menampilkan mitra binaan dan komisinya sendiri.
+          Mode <b>Agen/Reseller</b> hanya menampilkan titipan, nota, dan tagihan mitra itu sendiri.
+          Harga beli, laba, dan kas disembunyikan dari keduanya.
+          Pasang PIN agar perangkat tidak bisa dikembalikan ke mode Pemilik oleh orang lain.</div>
       </div>
     </div>
 
@@ -161,6 +199,8 @@ export function render(view) {
 
   view.querySelector('#editToko').onclick = formToko;
   view.querySelector('#editTrx').onclick = formTransaksi;
+  view.querySelector('#gantiPeran').onclick = dialogGantiPeran;
+  view.querySelector('#ubahPin').onclick = formPin;
 
   view.querySelector('#segTema').onclick = e => {
     const b = e.target.closest('[data-v]'); if (!b) return;

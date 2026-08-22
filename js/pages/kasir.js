@@ -10,6 +10,7 @@ import { pergi, segarkan } from '../core/router.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, todayISO, tambahHari, sortBy, round2,
 } from '../core/utils.js';
+import { bolehLihatModal, adalah, salesAktif, filterMitra } from '../core/peran.js';
 
 let trx = null;
 let el = null;
@@ -35,8 +36,8 @@ const labaEstimasi = () => round2(total() - sum(trx.items, i => toNum(i.qty) * t
 /* ---------- pemilih mitra ---------- */
 async function pilihMitra() {
   const items = [
-    { id: '', nama: 'Pelanggan Umum', tipe: 'umum', kode: '—' },
-    ...sortBy(db.mitra.filter(m => m.aktif !== false), m => m.nama.toLowerCase()),
+    ...(adalah('sales') ? [] : [{ id: '', nama: 'Pelanggan Umum', tipe: 'umum', kode: '—' }]),
+    ...sortBy(filterMitra(db.mitra).filter(m => m.aktif !== false), m => m.nama.toLowerCase()),
   ];
   const m = await pilihItem({
     judul: 'Pilih Pelanggan',
@@ -50,7 +51,7 @@ async function pilihMitra() {
           <div class="ri-sub">${esc(x.kode)}${x.telp ? ' · ' + esc(x.telp) : ''}</div></div>
         ${piutang > 0 ? `<div class="ri-right"><div class="ri-val neg">${rp(piutang)}</div><div class="ri-note">piutang</div></div>` : ''}`;
     },
-    aksiTambah: { teks: 'Daftarkan mitra baru', aksi: () => pergi('mitra') },
+    ...(adalah('sales') ? {} : { aksiTambah: { teks: 'Daftarkan mitra baru', aksi: () => pergi('mitra') } }),
   });
   if (!m) return;
   trx.mitraId = m.id;
@@ -218,6 +219,44 @@ async function simpan() {
   tampilkanStruk(jual, { onTutup: () => segarkan() });
 }
 
+const tombolCepat = t => [t, Math.ceil(t / 50000) * 50000, Math.ceil(t / 100000) * 100000, Math.ceil(t / 500000) * 500000]
+  .filter((v, i, a) => v > 0 && a.indexOf(v) === i).slice(0, 4)
+  .map(v => `<button class="btn btn-xs" data-cepat="${v}">${rp(v)}</button>`).join('');
+
+/**
+ * Perbarui angka-angka saja — TIDAK menggambar ulang seluruh layar.
+ * Menggambar ulang saat pengguna mengetik akan menghancurkan kolom input
+ * dan merebut fokus, sehingga hanya satu karakter yang bisa diketik.
+ */
+function perbaruiAngka() {
+  const t = total();
+  const dibayar = trx.bayar === 'tunai' ? toNum(trx.dibayar) : Math.min(toNum(trx.dibayar), t);
+  const isi = (sel, teks) => { const n = el.querySelector(sel); if (n) n.textContent = teks; };
+
+  isi('#nSubtotal', rp(subtotal()));
+  isi('#nTotal', rp(t));
+  isi('#sbTotal', rp(t));
+  isi('#nLaba', rp(labaEstimasi()));
+
+  if (trx.bayar === 'tunai') {
+    const kembali = round2(dibayar - t);
+    const n = el.querySelector('#nKembali');
+    if (n) { n.textContent = rp(Math.max(0, kembali)); n.className = `v ${kembali < 0 ? 'neg' : 'pos'}`; }
+    const box = el.querySelector('#tombolCepat');
+    if (box) {
+      box.innerHTML = tombolCepat(t);
+      box.querySelectorAll('[data-cepat]').forEach(b => b.onclick = () => {
+        trx.dibayar = toNum(b.dataset.cepat);
+        const inp = el.querySelector('#inpBayar');
+        if (inp) inp.value = num(trx.dibayar);
+        perbaruiAngka();
+      });
+    }
+  } else {
+    isi('#nSisa', rp(round2(t - dibayar)));
+  }
+}
+
 /* ---------- render ---------- */
 function gambar() {
   const mitra = mitraAktif();
@@ -246,8 +285,8 @@ function gambar() {
           </button>
           <div class="form-row mt12">
             <div class="field mb0"><label>Sales</label>
-              <select class="select" id="selSales">
-                <option value="">— Tanpa sales —</option>
+              <select class="select" id="selSales" ${adalah('sales') ? 'disabled' : ''}>
+                ${adalah('sales') ? '' : '<option value="">— Tanpa sales —</option>'}
                 ${db.sales.filter(s => s.aktif !== false).map(s =>
                   `<option value="${s.id}" ${s.id === trx.salesId ? 'selected' : ''}>${esc(s.nama)}</option>`).join('')}
               </select>
@@ -294,10 +333,10 @@ function gambar() {
       <div class="card">
         <div class="card-head"><h2>💳 Pembayaran</h2></div>
         <div class="card-body">
-          <div class="kv"><span class="k">Subtotal</span><span class="v">${rp(sub)}</span></div>
+          <div class="kv"><span class="k">Subtotal</span><span class="v" id="nSubtotal">${rp(sub)}</span></div>
           <div class="field mt8"><label>Diskon Nota</label>
             <input class="input num" id="inpDiskon" inputmode="numeric" data-rupiah value="${trx.diskon ? num(trx.diskon) : ''}" placeholder="0"></div>
-          <div class="kv total"><span class="k">TOTAL</span><span class="v">${rp(t)}</span></div>
+          <div class="kv total"><span class="k">TOTAL</span><span class="v" id="nTotal">${rp(t)}</span></div>
 
           <div class="lbl-t mt12">Metode Bayar</div>
           <div class="seg" id="segBayar">
@@ -317,21 +356,17 @@ function gambar() {
           </div>
 
           ${trx.bayar === 'tunai'
-            ? `<div class="kv mt8"><span class="k">Kembalian</span><span class="v ${kembali < 0 ? 'neg' : 'pos'}">${rp(Math.max(0, kembali))}</span></div>
-               <div class="btn-row mt8">
-                 ${[t, Math.ceil(t / 50000) * 50000, Math.ceil(t / 100000) * 100000, Math.ceil(t / 500000) * 500000]
-                   .filter((v, i, a) => v > 0 && a.indexOf(v) === i).slice(0, 4)
-                   .map(v => `<button class="btn btn-xs" data-cepat="${v}">${rp(v)}</button>`).join('')}
-               </div>`
-            : `<div class="kv mt8"><span class="k">Sisa Piutang</span><span class="v neg">${rp(sisa)}</span></div>
+            ? `<div class="kv mt8"><span class="k">Kembalian</span><span class="v ${kembali < 0 ? 'neg' : 'pos'}" id="nKembali">${rp(Math.max(0, kembali))}</span></div>
+               <div class="btn-row mt8" id="tombolCepat">${tombolCepat(t)}</div>`
+            : `<div class="kv mt8"><span class="k">Sisa Piutang</span><span class="v neg" id="nSisa">${rp(sisa)}</span></div>
                <div class="field mt8 mb0"><label>Jatuh Tempo</label>
                  <input class="input" type="date" id="inpTempo" value="${trx.jatuhTempo || tambahHari(trx.tanggal, toNum(mitra?.tempoHari) || 14)}"></div>`}
 
           <div class="field mt12 mb0"><label>Catatan</label>
             <input class="input" id="inpCatatan" value="${esc(trx.catatan)}" placeholder="Opsional"></div>
 
-          <div class="divider"></div>
-          <div class="kv"><span class="k">Estimasi laba kotor</span><span class="v pos">${rp(labaEstimasi())}</span></div>
+          ${bolehLihatModal() ? `<div class="divider"></div>
+          <div class="kv"><span class="k">Estimasi laba kotor</span><span class="v pos" id="nLaba">${rp(labaEstimasi())}</span></div>` : ''}
         </div>
       </div>
     </div>
@@ -340,7 +375,7 @@ function gambar() {
   <div class="sticky-bar">
     <div class="sb-info">
       <div class="sb-lbl">${trx.items.length} item · ${num(sum(trx.items, i => i.qty))} unit</div>
-      <div class="sb-val">${rp(t)}</div>
+      <div class="sb-val" id="sbTotal">${rp(t)}</div>
     </div>
     <button class="btn btn-primary" id="btnSimpan" ${trx.items.length ? '' : 'disabled'}>✔ Simpan</button>
   </div>`;
@@ -361,8 +396,9 @@ function ikat() {
   q('#inpCatatan').oninput = e => { trx.catatan = e.target.value; };
   q('#inpTempo') && (q('#inpTempo').onchange = e => { trx.jatuhTempo = e.target.value; });
 
-  q('#inpDiskon').addEventListener('nilai', e => { trx.diskon = e.detail; gambar(); });
-  q('#inpBayar').addEventListener('nilai', debounce(e => { trx.dibayar = e.detail; gambar(); }, 400));
+  // hanya angka yang diperbarui — layar tidak digambar ulang saat mengetik
+  q('#inpDiskon').addEventListener('nilai', e => { trx.diskon = e.detail; perbaruiAngka(); });
+  q('#inpBayar').addEventListener('nilai', e => { trx.dibayar = e.detail; perbaruiAngka(); });
 
   q('#segBayar').onclick = e => {
     const b = e.target.closest('[data-v]'); if (!b) return;
@@ -373,7 +409,9 @@ function ikat() {
 
   el.querySelectorAll('[data-cepat]').forEach(b => b.onclick = () => {
     trx.dibayar = toNum(b.dataset.cepat);
-    gambar();
+    const inp = el.querySelector('#inpBayar');
+    if (inp) inp.value = num(trx.dibayar);
+    perbaruiAngka();
   });
 
   el.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => ubahBaris(+b.dataset.edit));
@@ -395,6 +433,10 @@ function ikat() {
 export function render(view, params = []) {
   el = view;
   if (!trx) trx = baru();
+
+  // sales selalu tercatat atas namanya sendiri
+  const sales = salesAktif();
+  if (sales) trx.salesId = sales.id;
 
   // pra-pilih mitra dari parameter rute (#/kasir/<mitraId>)
   if (params[0]) {

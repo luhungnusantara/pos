@@ -1,12 +1,13 @@
 /* pages/piutang.js — piutang mitra & hutang supplier */
-import { get } from '../core/store.js';
+import { db, get } from '../core/store.js';
 import { daftarPiutang, totalPiutang, daftarHutang, totalHutang, sisaPiutang } from '../core/domain.js';
 import { modalBayarPiutang, modalBayarHutang } from '../core/bayar.js';
 import { setJudul, setTopbar, setFab, sukses, gagal, kosongState, statTile, badge, avatarEl } from '../core/ui.js';
 import { tampilkanStruk } from '../core/struk.js';
 import { segarkan } from '../core/router.js';
+import { isOwner, bolehTransaksi, filterPenjualan } from '../core/peran.js';
 import {
-  esc, rp, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, selisihHari, groupBy, unduh, toCSV,
+  esc, rp, num, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, selisihHari, groupBy, unduh, toCSV,
 } from '../core/utils.js';
 
 let f = { tab: 'piutang', q: '', umur: 'semua' };
@@ -20,8 +21,9 @@ const kelompokUmur = hari =>
         : { kode: '30+', label: '> 30 hari', kelas: 'bad' };
 
 export function render(view) {
-  const piutang = daftarPiutang();
-  const hutang = daftarHutang();
+  const piutang = filterPenjualan(daftarPiutang());
+  const hutang = isOwner() ? daftarHutang() : [];
+  if (!isOwner() && f.tab === 'hutang') f.tab = 'piutang';
 
   setJudul('Piutang & Hutang', `Piutang ${rp(totalPiutang())} · Hutang ${rp(totalHutang())}`);
   setTopbar([{ teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: ekspor }]);
@@ -32,16 +34,20 @@ export function render(view) {
 
   view.innerHTML = `
     <div class="grid g4 mb12">
-      ${statTile({ label: 'Total Piutang', nilai: rp(totalPiutang()), sub: `${piutang.length} nota`, warna: 'bad', ikon: '📌' })}
+      ${statTile({ label: isOwner() ? 'Total Piutang' : 'Piutang', nilai: rp(sum(piutang, sisaPiutang)), sub: `${piutang.length} nota`, warna: 'bad', ikon: '📌' })}
       ${statTile({ label: 'Lewat Jatuh Tempo', nilai: rp(nilaiTempo), sub: `${jatuhTempo.length} nota`, warna: nilaiTempo > 0 ? 'bad' : 'ok', ikon: '⏰' })}
-      ${statTile({ label: 'Total Hutang', nilai: rp(totalHutang()), sub: `${hutang.length} faktur`, warna: 'warn', ikon: '🏭' })}
-      ${statTile({ label: 'Posisi Bersih', nilai: rp(totalPiutang() - totalHutang()), sub: 'piutang − hutang', warna: totalPiutang() - totalHutang() >= 0 ? 'ok' : 'bad', ikon: '⚖️' })}
+      ${isOwner()
+        ? statTile({ label: 'Total Hutang', nilai: rp(totalHutang()), sub: `${hutang.length} faktur`, warna: 'warn', ikon: '🏭' })
+        : statTile({ label: 'Nota Lunas', nilai: num(filterPenjualan(db.penjualan).filter(j => j.status !== 'batal' && sisaPiutang(j) <= 0).length), sub: 'sudah dibayar', warna: 'ok', ikon: '✅' })}
+      ${isOwner()
+        ? statTile({ label: 'Posisi Bersih', nilai: rp(totalPiutang() - totalHutang()), sub: 'piutang − hutang', warna: totalPiutang() - totalHutang() >= 0 ? 'ok' : 'bad', ikon: '⚖️' })
+        : statTile({ label: 'Mitra Menunggak', nilai: num(new Set(piutang.map(j => j.mitraId)).size), sub: 'perlu ditagih', warna: 'warn', ikon: '🏪' })}
     </div>
 
-    <div class="seg mb12" id="segTab">
+    ${isOwner() ? `<div class="seg mb12" id="segTab">
       <button type="button" data-v="piutang" class="${f.tab === 'piutang' ? 'active' : ''}">📌 Piutang Mitra (${piutang.length})</button>
       <button type="button" data-v="hutang" class="${f.tab === 'hutang' ? 'active' : ''}">🏭 Hutang Supplier (${hutang.length})</button>
-    </div>
+    </div>` : ''}
 
     <div class="toolbar">
       <div class="search-wrap grow"><input class="input" id="cari" placeholder="Cari nama / no. nota..." value="${esc(f.q)}"></div>
@@ -96,7 +102,7 @@ export function render(view) {
               </div>
               <div class="ri-right">
                 <div class="ri-val neg">${rp(sisaPiutang(j))}</div>
-                <button class="btn btn-xs btn-soft mt8" data-bayar="${j.id}">💵 Bayar</button>
+                ${bolehTransaksi() ? `<button class="btn btn-xs btn-soft mt8" data-bayar="${j.id}">💵 Bayar</button>` : ''}
               </div>
             </div>`;
           }).join('')}
@@ -133,7 +139,8 @@ export function render(view) {
   const gambar = () => (f.tab === 'piutang' ? gambarPiutang() : gambarHutang());
   gambar();
 
-  view.querySelector('#segTab').onclick = e => {
+  const segTab = view.querySelector('#segTab');
+  if (segTab) segTab.onclick = e => {
     const b = e.target.closest('[data-v]'); if (!b) return;
     f.tab = b.dataset.v; segarkan();
   };
@@ -167,7 +174,7 @@ export function render(view) {
 
   function ekspor() {
     const rows = f.tab === 'piutang'
-      ? daftarPiutang().map(j => ({
+      ? filterPenjualan(daftarPiutang()).map(j => ({
         Tanggal: j.tanggal, NoNota: j.noRef, Mitra: j.mitraNama, Tipe: j.tipeMitra,
         JatuhTempo: j.jatuhTempo || '', UmurHari: umurNota(j),
         Total: j.total, Dibayar: j.dibayar, Sisa: sisaPiutang(j),

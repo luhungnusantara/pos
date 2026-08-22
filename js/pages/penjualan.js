@@ -8,6 +8,7 @@ import { tampilkanStruk, bagikanStruk } from '../core/struk.js';
 import { modalBayarPiutang } from '../core/bayar.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
+import { isOwner, bolehLihatModal, bolehTransaksi, filterPenjualan } from '../core/peran.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, unduh, toCSV, todayISO,
 } from '../core/utils.js';
@@ -16,7 +17,7 @@ let f = { kode: '30hari', dari: todayISO(), sampai: todayISO(), q: '', jenis: 's
 
 function daftar() {
   const { dari, sampai } = hitungPeriode(f.kode, f);
-  let arr = db.penjualan.filter(j =>
+  let arr = filterPenjualan(db.penjualan).filter(j =>
     (!dari || j.tanggal >= dari) && (!sampai || j.tanggal <= sampai));
 
   if (f.status !== 'batal') arr = arr.filter(j => j.status !== 'batal');
@@ -72,10 +73,11 @@ function detail(j) {
         <div class="kv total"><span class="k">Total</span><span class="v">${rp(j.total)}</span></div>
         <div class="kv"><span class="k">Dibayar (${esc(j.metode || 'tunai')})</span><span class="v pos">${rp(j.dibayar)}</span></div>
         ${sisa > 0 ? `<div class="kv"><span class="k">Sisa piutang</span><span class="v neg">${rp(sisa)}</span></div>` : ''}
+        ${bolehLihatModal() ? `
         <div class="divider"></div>
         <div class="kv"><span class="k">HPP</span><span class="v">${rp(j.hpp)}</span></div>
-        <div class="kv"><span class="k">Laba kotor</span><span class="v pos">${rp(j.laba)}</span></div>
-        ${kom ? `<div class="kv"><span class="k">Komisi ${esc(sales?.nama || '')}</span>
+        <div class="kv"><span class="k">Laba kotor</span><span class="v pos">${rp(j.laba)}</span></div>` : ''}
+        ${kom && (isOwner() || kom.salesId === j.salesId) ? `<div class="kv"><span class="k">Komisi ${esc(sales?.nama || '')}</span>
           <span class="v">${rp(kom.nilai)} ${badge(kom.status === 'dibayar' ? 'dibayar' : 'pending', kom.status === 'dibayar' ? 'ok' : 'warn')}</span></div>` : ''}
       </div></div>
 
@@ -90,7 +92,7 @@ function detail(j) {
         </div></div>` : ''}`,
     tombol: dibatalkan ? [{ teks: 'Tutup', kelas: 'btn-ghost' }] : [
       { teks: '🧾 Nota', kelas: 'btn-ghost', aksi: () => tampilkanStruk(j) },
-      ...(sisa > 0 ? [{ teks: '💵 Terima Bayar', kelas: 'btn-primary', aksi: x => { x.tutup(); modalBayarPiutang(j, segarkan); } }] : []),
+      ...(sisa > 0 && bolehTransaksi() ? [{ teks: '💵 Terima Bayar', kelas: 'btn-primary', aksi: x => { x.tutup(); modalBayarPiutang(j, segarkan); } }] : []),
       { teks: '⋯', kelas: 'btn-ghost', aksi: () => menuLain(j, h) },
     ],
   });
@@ -103,9 +105,9 @@ function menuLain(j, indukModal) {
       <button class="row-item" data-a="bagikan"><span class="ico">📤</span><div class="ri-main"><div class="ri-title">Bagikan / salin nota</div></div></button>
       <button class="row-item" data-a="cetak"><span class="ico">🖨️</span><div class="ri-main"><div class="ri-title">Cetak nota</div></div></button>
       ${j.konsinyasiId ? `<button class="row-item" data-a="kons"><span class="ico">🤝</span><div class="ri-main"><div class="ri-title">Lihat konsinyasi asal</div></div></button>` : ''}
-      <button class="row-item" data-a="batal"><span class="ico">⛔</span><div class="ri-main">
+      ${isOwner() ? `<button class="row-item" data-a="batal"><span class="ico">⛔</span><div class="ri-main">
         <div class="ri-title" style="color:var(--bad)">Batalkan transaksi</div>
-        <div class="ri-sub">Stok, kas, dan komisi dikembalikan</div></div></button>
+        <div class="ri-sub">Stok, kas, dan komisi dikembalikan</div></div></button>` : ''}
     </div>`,
     onBuka: (body, h) => body.addEventListener('click', async ev => {
       const b = ev.target.closest('[data-a]'); if (!b) return;
@@ -138,9 +140,9 @@ export function render(view) {
   setJudul('Riwayat Penjualan', `${label} · ${aktif.length} transaksi`);
   setTopbar([
     { teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: () => eksporCSV(arr) },
-    { teks: 'Jual', ikon: '＋', onClick: () => pergi('kasir') },
+    ...(bolehTransaksi() ? [{ teks: 'Jual', ikon: '＋', onClick: () => pergi('kasir') }] : []),
   ]);
-  setFab({ ikon: '＋', teks: 'Penjualan baru', onClick: () => pergi('kasir') });
+  setFab(bolehTransaksi() ? { ikon: '＋', teks: 'Penjualan baru', onClick: () => pergi('kasir') } : null);
 
   const omzet = sum(aktif, j => j.total);
   const laba = sum(aktif, j => j.laba);
@@ -149,7 +151,9 @@ export function render(view) {
   view.innerHTML = `
     <div class="grid g4 mb12">
       ${statTile({ label: 'Omzet', nilai: rp(omzet), sub: label, warna: 'ok', ikon: '💰' })}
-      ${statTile({ label: 'Laba Kotor', nilai: rp(laba), sub: omzet ? `margin ${num(laba / omzet * 100, 1)}%` : '—', warna: 'info', ikon: '📈' })}
+      ${bolehLihatModal()
+        ? statTile({ label: 'Laba Kotor', nilai: rp(laba), sub: omzet ? `margin ${num(laba / omzet * 100, 1)}%` : '—', warna: 'info', ikon: '📈' })
+        : statTile({ label: 'Unit Terjual', nilai: num(sum(aktif, j => sum(j.items, i => i.qty))), sub: label, warna: 'info', ikon: '📦' })}
       ${statTile({ label: 'Transaksi', nilai: num(aktif.length), sub: `${num(sum(aktif, j => sum(j.items, i => i.qty)))} unit`, ikon: '🧾' })}
       ${statTile({ label: 'Piutang', nilai: rp(piutang), sub: 'belum tertagih', warna: piutang > 0 ? 'bad' : '', ikon: '📌' })}
     </div>
@@ -173,7 +177,7 @@ export function render(view) {
     const list = daftar();
     if (!list.length) {
       box.innerHTML = kosongState('🧾', 'Belum ada penjualan', `Tidak ada transaksi pada ${label}.`,
-        '<a class="btn btn-primary" href="#/kasir">＋ Buat Penjualan</a>');
+        bolehTransaksi() ? '<a class="btn btn-primary" href="#/kasir">＋ Buat Penjualan</a>' : '');
       return;
     }
     box.innerHTML = list.map(j => {
@@ -222,7 +226,9 @@ function eksporCSV(arr) {
       Sales: get('sales', j.salesId)?.nama || '',
       Produk: p?.nama || '', Kode: p?.kode || '',
       Qty: i.qty, Harga: i.harga, Jumlah: toNum(i.qty) * toNum(i.harga),
-      HargaBeli: i.hargaBeli, LabaItem: (toNum(i.harga) - toNum(i.hargaBeli)) * toNum(i.qty),
+      ...(bolehLihatModal()
+        ? { HargaBeli: i.hargaBeli, LabaItem: (toNum(i.harga) - toNum(i.hargaBeli)) * toNum(i.qty) }
+        : {}),
       TotalNota: j.total, Dibayar: j.dibayar, Sisa: sisaPiutang(j), Status: j.status,
     };
   }));

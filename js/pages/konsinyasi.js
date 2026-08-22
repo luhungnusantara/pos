@@ -10,6 +10,7 @@ import {
 } from '../core/ui.js';
 import { tampilkanStruk } from '../core/struk.js';
 import { segarkan, pergi } from '../core/router.js';
+import { bolehTransaksi, bolehLihatKonsinyasi, filterKonsinyasi, filterMitra, adalah } from '../core/peran.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy,
   todayISO, tambahHari, selisihHari, round2,
@@ -26,17 +27,18 @@ const nilaiTerjual = k => round2(sum(k.items, it => toNum(it.terjual) * toNum(it
    DAFTAR
    ========================================================= */
 function halamanDaftar(view) {
-  const semua = db.konsinyasi;
+  const semua = filterKonsinyasi(db.konsinyasi);
   const aktif = semua.filter(k => k.status === 'aktif');
 
   setJudul('Konsinyasi', `${aktif.length} titipan berjalan`);
-  setTopbar([{ teks: 'Titip Barang', ikon: '＋', onClick: () => pergi('konsinyasi/baru') }]);
-  setFab({ ikon: '＋', teks: 'Titip barang', onClick: () => pergi('konsinyasi/baru') });
+  setTopbar(bolehTransaksi() ? [{ teks: 'Titip Barang', ikon: '＋', onClick: () => pergi('konsinyasi/baru') }] : []);
+  setFab(bolehTransaksi() ? { ikon: '＋', teks: 'Titip barang', onClick: () => pergi('konsinyasi/baru') } : null);
 
   const totalSisa = sum(aktif, nilaiSisa);
   const unitSisa = sum(aktif, sisaKons);
+  const idTitipan = new Set(semua.map(k => k.id));
   const belumSetor = sum(
-    db.penjualan.filter(j => j.jenis === 'konsinyasi' && j.status !== 'batal'),
+    db.penjualan.filter(j => j.jenis === 'konsinyasi' && j.status !== 'batal' && idTitipan.has(j.konsinyasiId)),
     j => Math.max(0, toNum(j.total) - toNum(j.dibayar)));
 
   view.innerHTML = `
@@ -70,7 +72,7 @@ function halamanDaftar(view) {
     if (!arr.length) {
       box.innerHTML = kosongState('🤝', 'Belum ada titipan',
         'Catat barang yang dititipkan ke agen atau reseller, lalu laporkan hasil penjualannya secara berkala.',
-        '<a class="btn btn-primary" href="#/konsinyasi/baru">＋ Titip Barang</a>');
+        bolehTransaksi() ? '<a class="btn btn-primary" href="#/konsinyasi/baru">＋ Titip Barang</a>' : '');
       return;
     }
     box.innerHTML = arr.map(k => {
@@ -214,7 +216,7 @@ function halamanBaru(view, mitraId = '') {
     q('#btnMitra').onclick = async () => {
       const m = await pilihItem({
         judul: 'Pilih Mitra',
-        items: sortBy(db.mitra.filter(x => x.aktif !== false), x => x.nama.toLowerCase()),
+        items: sortBy(filterMitra(db.mitra).filter(x => x.aktif !== false), x => x.nama.toLowerCase()),
         cariPada: x => `${x.nama} ${x.kode} ${x.telp || ''}`,
         render: x => `${avatarEl(x.nama, x.tipe === 'agen' ? 'i' : 'v')}
           <div class="ri-main"><div class="ri-title">${esc(x.nama)} ${badge(x.tipe === 'agen' ? 'Agen' : 'Reseller', x.tipe === 'agen' ? 'info' : 'violet')}</div>
@@ -331,6 +333,13 @@ function halamanDetail(view, id) {
     view.innerHTML = kosongState('❓', 'Titipan tidak ditemukan', '', '<a class="btn btn-primary" href="#/konsinyasi">Kembali</a>');
     return;
   }
+  if (!bolehLihatKonsinyasi(k)) {
+    setJudul('Akses Dibatasi');
+    view.innerHTML = kosongState('🔒', 'Titipan ini bukan milik Anda',
+      'Peran perangkat saat ini hanya boleh melihat titipannya sendiri.',
+      '<a class="btn btn-primary" href="#/konsinyasi">Kembali</a>');
+    return;
+  }
   const m = get('mitra', k.mitraId);
   const sales = k.salesId ? get('sales', k.salesId) : null;
   const notaTerkait = db.penjualan.filter(j => j.konsinyasiId === k.id && j.status !== 'batal');
@@ -338,7 +347,8 @@ function halamanDetail(view, id) {
 
   setJudul(k.noRef, `Titipan ke ${m?.nama || '-'}`);
   setTopbar([{ teks: 'Kembali', ikon: '←', kelas: 'btn-ghost btn-sm', onClick: () => pergi('konsinyasi') }]);
-  setFab(k.status === 'aktif' ? { ikon: '📝', teks: 'Lapor penjualan', onClick: () => modalLapor(k) } : null);
+  setFab(k.status === 'aktif' && bolehTransaksi()
+    ? { ikon: '📝', teks: 'Lapor penjualan', onClick: () => modalLapor(k) } : null);
 
   view.innerHTML = `
     <div class="flex flex-wrap mb12">
@@ -399,12 +409,15 @@ function halamanDetail(view, id) {
         }).join('')}
       </div></div>` : ''}
 
-    ${k.status === 'aktif' ? `
+    ${k.status === 'aktif' && bolehTransaksi() ? `
       <div class="btn-row">
         <button class="btn btn-primary grow" id="btnLapor">📝 Lapor Hasil Penjualan</button>
         <button class="btn" id="btnTambah">＋ Tambah Titipan</button>
         <button class="btn btn-danger" id="btnTutup">✔ Tutup & Retur Sisa</button>
-      </div>` : ''}`;
+      </div>` : ''}
+    ${adalah('mitra') && k.status === 'aktif' ? `
+      <div class="hint">ℹ️ Laporan penjualan titipan dicatat oleh sales atau pemilik.
+        Hubungi sales pendamping Anda bila sudah ada barang yang terjual.</div>` : ''}`;
 
   view.querySelector('#btnLapor')?.addEventListener('click', () => modalLapor(k));
   view.querySelector('#btnTambah')?.addEventListener('click', () => modalTambahTitipan(k));

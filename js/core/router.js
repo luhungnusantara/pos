@@ -1,5 +1,6 @@
 /* router.js — navigasi berbasis hash + pemuatan halaman dinamis */
 import { setJudul, setTopbar, setFab, gagal } from './ui.js';
+import { bolehBuka, PERAN, peranAktif } from './peran.js';
 
 const rute = {
   dashboard: () => import('../pages/dashboard.js'),
@@ -47,6 +48,22 @@ export async function muat(paksa = false) {
       <p>Menu <b>${nama}</b> belum tersedia.</p>
       <a class="btn btn-primary" href="#/dashboard">Kembali ke Dashboard</a></div>`;
     setJudul('404');
+    return;
+  }
+
+  // gerbang peran: halaman di luar kewenangan tidak dirender sama sekali
+  if (!bolehBuka(nama)) {
+    const p = PERAN[peranAktif()];
+    setTopbar([]);
+    setFab(null);
+    setJudul('Akses Dibatasi', `Peran ${p.label}`);
+    view.innerHTML = `<div class="empty">
+      <div class="em-ico">🔒</div>
+      <h3>Menu ini hanya untuk Pemilik</h3>
+      <p>Anda sedang masuk sebagai <b>${p.ikon} ${p.label}</b>, sehingga halaman
+         <b>${nama}</b> tidak tersedia. Ganti peran lewat tombol di bagian bawah menu.</p>
+      <a class="btn btn-primary" href="#/dashboard">Kembali ke Beranda</a>
+    </div>`;
     return;
   }
 

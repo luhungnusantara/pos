@@ -6,6 +6,7 @@ import {
 } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
+import { isOwner, adalah, salesAktif } from '../core/peran.js';
 import { esc, rp, num, toNum, sum, fmtTgl, fmtTglPendek, sortBy, todayISO, unduh, toCSV } from '../core/utils.js';
 
 let f = { kode: 'bulan', dari: todayISO(), sampai: todayISO(), status: 'semua' };
@@ -120,8 +121,8 @@ function halamanDetail(view, salesId) {
   const riwayatBayar = db.bayarKomisi.filter(b => b.salesId === s.id);
 
   setJudul(`Komisi ${s.nama}`, `${label} · ${esc(jelaskanSkema(s))}`);
-  setTopbar([{ teks: 'Kembali', ikon: '←', kelas: 'btn-ghost btn-sm', onClick: () => pergi('komisi') }]);
-  setFab(pending > 0 ? { ikon: '💵', teks: 'Bayar komisi', onClick: () => modalBayar(s) } : null);
+  setTopbar(isOwner() ? [{ teks: 'Kembali', ikon: '←', kelas: 'btn-ghost btn-sm', onClick: () => pergi('komisi') }] : []);
+  setFab(pending > 0 && isOwner() ? { ikon: '💵', teks: 'Bayar komisi', onClick: () => modalBayar(s) } : null);
 
   view.innerHTML = `
     <div class="grid g4 mb12">
@@ -133,7 +134,7 @@ function halamanDetail(view, salesId) {
 
     <div class="toolbar">
       ${htmlPeriode(f.kode, f)}
-      ${pending > 0 ? '<button class="btn btn-sm btn-primary" id="bayar">💵 Bayar Komisi</button>' : ''}
+      ${pending > 0 && isOwner() ? '<button class="btn btn-sm btn-primary" id="bayar">💵 Bayar Komisi</button>' : ''}
       <button class="btn btn-sm btn-ghost" id="ekspor">⬇️</button>
     </div>
     <div class="chips mb12" id="chipStatus">
@@ -289,6 +290,8 @@ function ekspor(dari, sampai, salesId = null) {
 }
 
 export function render(view, params = []) {
+  // sales hanya boleh melihat komisinya sendiri
+  if (adalah('sales')) return halamanDetail(view, salesAktif()?.id || '');
   if (params[0]) return halamanDetail(view, params[0]);
   return halamanRekap(view);
 }

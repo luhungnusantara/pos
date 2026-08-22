@@ -1,12 +1,43 @@
 /* utils.js — helper umum */
 
 /* ---------- angka & uang ---------- */
+/**
+ * Baca angka dari teks berformat Indonesia maupun dari <input type="number">.
+ * Aturan pemisah:
+ *   - ada koma          → koma = desimal, titik = ribuan   ("1.234.567,89")
+ *   - titik lebih dari 1 → semuanya ribuan                  ("1.234.567")
+ *   - tepat satu titik   → ribuan bila diikuti tepat 3 digit ("1.234" → 1234),
+ *                          selain itu desimal                ("2.5" → 2.5)
+ */
 export const toNum = v => {
   if (typeof v === 'number') return isFinite(v) ? v : 0;
   if (v == null) return 0;
-  const s = String(v).replace(/[^\d,.-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
+
+  let s = String(v).trim().replace(/[^\d.,-]/g, '');
+  if (!s) return 0;
+  const negatif = s.startsWith('-');
+  s = s.replace(/-/g, '');
+
+  if (s.includes(',')) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  } else {
+    const bagian = s.split('.');
+    if (bagian.length > 2) s = bagian.join('');
+    else if (bagian.length === 2 && bagian[1].length === 3) s = bagian.join('');
+  }
+
   const n = parseFloat(s);
-  return isFinite(n) ? n : 0;
+  return isFinite(n) ? (negatif ? -n : n) : 0;
+};
+
+/** ambil bilangan bulat dari teks (khusus rupiah — tanpa sen) */
+export const toInt = v => {
+  if (typeof v === 'number') return isFinite(v) ? Math.round(v) : 0;
+  const s = String(v ?? '');
+  const digit = s.replace(/[^\d]/g, '');
+  if (!digit) return 0;
+  const n = parseInt(digit, 10);
+  return s.trim().startsWith('-') ? -n : n;
 };
 
 export const num = (n, dec = 0) =>

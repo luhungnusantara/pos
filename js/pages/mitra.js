@@ -6,6 +6,7 @@ import {
   kosongState, statTile, badge, modal, avatarEl,
 } from '../core/ui.js';
 import { segarkan, pergi } from '../core/router.js';
+import { bolehUbah, bolehTransaksi, filterMitra } from '../core/peran.js';
 import { esc, rp, num, toNum, cocok, sum, debounce, sortBy, fmtTgl } from '../core/utils.js';
 
 let filter = { q: '', tipe: 'semua' };
@@ -102,8 +103,10 @@ function detailMitra(m) {
           </tr>`).join('')}</tbody>
         </table></div></div>` : ''}`,
     tombol: [
-      { teks: '🧾 Jual', kelas: 'btn-ghost', aksi: h => { h.tutup(); pergi(`kasir/${m.id}`); } },
-      { teks: '✏️ Ubah', kelas: 'btn-primary', aksi: h => { h.tutup(); formMitra(m); } },
+      ...(bolehTransaksi() ? [{ teks: '🧾 Jual', kelas: 'btn-ghost', aksi: h => { h.tutup(); pergi(`kasir/${m.id}`); } }] : []),
+      bolehUbah()
+        ? { teks: '✏️ Ubah', kelas: 'btn-primary', aksi: h => { h.tutup(); formMitra(m); } }
+        : { teks: 'Tutup', kelas: 'btn-primary' },
     ],
   });
 }
@@ -124,17 +127,18 @@ async function hapusMitra(m) {
 }
 
 export function render(view) {
-  const agen = db.mitra.filter(m => m.tipe === 'agen');
-  const reseller = db.mitra.filter(m => m.tipe === 'reseller');
-  setJudul('Agen & Reseller', `${agen.length} agen · ${reseller.length} reseller`);
-  setTopbar([{ teks: 'Mitra Baru', ikon: '＋', onClick: () => formMitra() }]);
-  setFab({ ikon: '＋', teks: 'Mitra baru', onClick: () => formMitra() });
+  const semua = filterMitra(db.mitra);
+  const agen = semua.filter(m => m.tipe === 'agen');
+  const reseller = semua.filter(m => m.tipe === 'reseller');
+  setJudul(bolehUbah() ? 'Agen & Reseller' : 'Mitra Binaan', `${agen.length} agen · ${reseller.length} reseller`);
+  setTopbar(bolehUbah() ? [{ teks: 'Mitra Baru', ikon: '＋', onClick: () => formMitra() }] : []);
+  setFab(bolehUbah() ? { ikon: '＋', teks: 'Mitra baru', onClick: () => formMitra() } : null);
 
   view.innerHTML = `
     <div class="grid g3 mb12">
       ${statTile({ label: 'Agen', nilai: num(agen.length), sub: 'harga agen', warna: 'info', ikon: '🏬' })}
       ${statTile({ label: 'Reseller', nilai: num(reseller.length), sub: 'harga reseller', warna: 'violet', ikon: '🏪' })}
-      ${statTile({ label: 'Total Piutang', nilai: rp(totalPiutang()), sub: 'seluruh mitra', warna: 'bad', ikon: '📌' })}
+      ${statTile({ label: 'Total Piutang', nilai: rp(sum(semua, m => totalPiutang(m.id))), sub: bolehUbah() ? 'seluruh mitra' : 'mitra binaan', warna: 'bad', ikon: '📌' })}
     </div>
     <div class="toolbar">
       <div class="search-wrap grow"><input class="input" id="cari" placeholder="Cari mitra..." value="${esc(filter.q)}"></div>
@@ -147,7 +151,7 @@ export function render(view) {
 
   const daftar = view.querySelector('#daftar');
   const gambar = () => {
-    let arr = db.mitra.filter(m => cocok(`${m.nama} ${m.kode} ${m.telp} ${m.alamat}`, filter.q));
+    let arr = semua.filter(m => cocok(`${m.nama} ${m.kode} ${m.telp} ${m.alamat}`, filter.q));
     if (filter.tipe === 'agen' || filter.tipe === 'reseller') arr = arr.filter(m => m.tipe === filter.tipe);
     if (filter.tipe === 'piutang') arr = arr.filter(m => totalPiutang(m.id) > 0);
     if (filter.tipe === 'titipan') arr = arr.filter(m => stokKonsinyasi(null, m.id) > 0);
@@ -156,7 +160,7 @@ export function render(view) {
     if (!arr.length) {
       daftar.innerHTML = kosongState('🏪', 'Belum ada mitra',
         'Daftarkan agen dan reseller Anda untuk mulai mencatat penjualan dan konsinyasi.',
-        '<button class="btn btn-primary" id="tk">＋ Tambah Mitra</button>');
+        bolehUbah() ? '<button class="btn btn-primary" id="tk">＋ Tambah Mitra</button>' : '');
       daftar.querySelector('#tk')?.addEventListener('click', () => formMitra());
       return;
     }
@@ -200,11 +204,12 @@ export function render(view) {
         judul: m.nama,
         isi: `<div class="list">
           <button class="row-item" data-a="detail"><span class="ico">👁️</span><div class="ri-main"><div class="ri-title">Detail & riwayat</div></div></button>
+          ${bolehTransaksi() ? `
           <button class="row-item" data-a="jual"><span class="ico">🧾</span><div class="ri-main"><div class="ri-title">Buat penjualan</div></div></button>
-          <button class="row-item" data-a="titip"><span class="ico">🤝</span><div class="ri-main"><div class="ri-title">Titip barang (konsinyasi)</div></div></button>
-          <button class="row-item" data-a="ubah"><span class="ico">✏️</span><div class="ri-main"><div class="ri-title">Ubah data</div></div></button>
+          <button class="row-item" data-a="titip"><span class="ico">🤝</span><div class="ri-main"><div class="ri-title">Titip barang (konsinyasi)</div></div></button>` : ''}
+          ${bolehUbah() ? `<button class="row-item" data-a="ubah"><span class="ico">✏️</span><div class="ri-main"><div class="ri-title">Ubah data</div></div></button>` : ''}
           ${m.telp ? `<a class="row-item" href="https://wa.me/62${esc(String(m.telp).replace(/^0|\D/g, ''))}" target="_blank" rel="noopener"><span class="ico">💬</span><div class="ri-main"><div class="ri-title">Hubungi via WhatsApp</div></div></a>` : ''}
-          <button class="row-item" data-a="hapus"><span class="ico">🗑️</span><div class="ri-main"><div class="ri-title" style="color:var(--bad)">Hapus mitra</div></div></button>
+          ${bolehUbah() ? `<button class="row-item" data-a="hapus"><span class="ico">🗑️</span><div class="ri-main"><div class="ri-title" style="color:var(--bad)">Hapus mitra</div></div></button>` : ''}
         </div>`,
         onBuka: (body, h) => body.addEventListener('click', ev => {
           const b = ev.target.closest('[data-a]'); if (!b) return;

@@ -5,6 +5,7 @@ import {
   setJudul, setTopbar, setFab, formModal, konfirmasi, sukses, gagal, ingat, kosongState, statTile, badge, modal,
 } from '../core/ui.js';
 import { segarkan, pergi } from '../core/router.js';
+import { bolehUbah, bolehLihatModal, adalah, mitraAktif } from '../core/peran.js';
 import { esc, rp, num, toNum, cocok, debounce, sortBy } from '../core/utils.js';
 
 let filter = { q: '', tampil: 'aktif', urut: 'nama' };
@@ -61,19 +62,24 @@ function detailProduk(p) {
         ${statTile({ label: 'Dititipkan', nilai: num(titip), sub: 'di agen/reseller', warna: 'violet' })}
       </div>
       <div class="card"><div class="card-body">
-        <div class="kv"><span class="k">Harga Beli</span><span class="v">${rp(p.hargaBeli)}</span></div>
-        <div class="kv"><span class="k">Harga Agen</span><span class="v">${rp(p.hargaAgen)} <span class="xs pos">(+${rp(marginAgen)})</span></span></div>
-        <div class="kv"><span class="k">Harga Reseller</span><span class="v">${rp(p.hargaReseller)} <span class="xs pos">(+${rp(marginRes)})</span></span></div>
-        ${toNum(p.hargaEcer) ? `<div class="kv"><span class="k">Harga Ecer</span><span class="v">${rp(p.hargaEcer)}</span></div>` : ''}
+        ${bolehLihatModal() ? `<div class="kv"><span class="k">Harga Beli</span><span class="v">${rp(p.hargaBeli)}</span></div>` : ''}
+        ${adalah('mitra') ? `
+          <div class="kv total"><span class="k">Harga untuk Anda</span>
+            <span class="v">${rp(mitraAktif()?.tipe === 'agen' ? p.hargaAgen : p.hargaReseller)}</span></div>`
+        : `
+          <div class="kv"><span class="k">Harga Agen</span><span class="v">${rp(p.hargaAgen)}${bolehLihatModal() ? ` <span class="xs pos">(+${rp(marginAgen)})</span>` : ''}</span></div>
+          <div class="kv"><span class="k">Harga Reseller</span><span class="v">${rp(p.hargaReseller)}${bolehLihatModal() ? ` <span class="xs pos">(+${rp(marginRes)})</span>` : ''}</span></div>
+          ${toNum(p.hargaEcer) ? `<div class="kv"><span class="k">Harga Ecer</span><span class="v">${rp(p.hargaEcer)}</span></div>` : ''}`}
         <div class="kv"><span class="k">Isi per ${p.satuan || 'satuan'}</span><span class="v">${num(p.isiPerSatuan) || '-'} bungkus${p.isi ? ` &middot; ${esc(p.isi)}` : ''}</span></div>
-        <div class="kv"><span class="k">Komisi sales /unit</span><span class="v">${toNum(p.komisiUnit) ? rp(p.komisiUnit) : '— ikut skema sales'}</span></div>
-        <div class="kv"><span class="k">Stok minimum</span><span class="v">${num(p.minStok)}</span></div>
-        <div class="kv"><span class="k">Nilai persediaan</span><span class="v">${rp(toNum(p.stok) * toNum(p.hargaBeli))}</span></div>
+        ${bolehLihatModal() ? `
+          <div class="kv"><span class="k">Komisi sales /unit</span><span class="v">${toNum(p.komisiUnit) ? rp(p.komisiUnit) : '— ikut skema sales'}</span></div>
+          <div class="kv"><span class="k">Stok minimum</span><span class="v">${num(p.minStok)}</span></div>
+          <div class="kv"><span class="k">Nilai persediaan</span><span class="v">${rp(toNum(p.stok) * toNum(p.hargaBeli))}</span></div>` : ''}
       </div></div>`,
-    tombol: [
+    tombol: bolehUbah() ? [
       { teks: '📦 Kartu Stok', kelas: 'btn-ghost', aksi: h => { h.tutup(); pergi(`stok/${p.id}`); } },
       { teks: '✏️ Ubah', kelas: 'btn-primary', aksi: h => { h.tutup(); formProduk(p); } },
-    ],
+    ] : [{ teks: 'Tutup', kelas: 'btn-primary' }],
   });
 }
 
@@ -99,16 +105,20 @@ async function hapusProduk(p) {
 
 export function render(view) {
   setJudul('Data Produk', `${db.produk.length} produk terdaftar`);
-  setTopbar([{ teks: 'Produk Baru', ikon: '＋', onClick: () => formProduk() }]);
-  setFab({ ikon: '＋', teks: 'Produk baru', onClick: () => formProduk() });
+  setTopbar(bolehUbah() ? [{ teks: 'Produk Baru', ikon: '＋', onClick: () => formProduk() }] : []);
+  setFab(bolehUbah() ? { ikon: '＋', teks: 'Produk baru', onClick: () => formProduk() } : null);
 
   const menipis = produkMenipis();
 
   view.innerHTML = `
     <div class="grid g3 mb12">
       ${statTile({ label: 'Total Produk', nilai: num(db.produk.filter(p => p.aktif !== false).length), sub: 'aktif dijual', ikon: '🚬' })}
-      ${statTile({ label: 'Nilai Persediaan', nilai: rp(nilaiPersediaan()), sub: 'harga beli × stok', warna: 'info', ikon: '📦' })}
-      ${statTile({ label: 'Stok Menipis', nilai: num(menipis.length), sub: menipis.length ? 'perlu restok' : 'aman', warna: menipis.length ? 'bad' : 'ok', ikon: '⚠️' })}
+      ${bolehLihatModal()
+        ? statTile({ label: 'Nilai Persediaan', nilai: rp(nilaiPersediaan()), sub: 'harga beli × stok', warna: 'info', ikon: '📦' })
+        : statTile({ label: 'Tersedia di Gudang', nilai: num(db.produk.filter(p => toNum(p.stok) > 0).length), sub: 'produk siap kirim', warna: 'info', ikon: '📦' })}
+      ${adalah('mitra')
+        ? statTile({ label: 'Tipe Harga Anda', nilai: mitraAktif()?.tipe === 'agen' ? 'Agen' : 'Reseller', sub: 'dipakai pada nota', warna: 'violet', ikon: '🏷️' })
+        : statTile({ label: 'Stok Menipis', nilai: num(menipis.length), sub: menipis.length ? 'perlu restok' : 'aman', warna: menipis.length ? 'bad' : 'ok', ikon: '⚠️' })}
     </div>
 
     <div class="toolbar">
@@ -142,7 +152,7 @@ export function render(view) {
     if (!arr.length) {
       daftar.innerHTML = kosongState('🚬', 'Belum ada produk',
         'Tambahkan produk rokok yang Anda jual beserta harga agen dan reseller.',
-        '<button class="btn btn-primary" id="tambahKosong">＋ Tambah Produk</button>');
+        bolehUbah() ? '<button class="btn btn-primary" id="tambahKosong">＋ Tambah Produk</button>' : '');
       daftar.querySelector('#tambahKosong')?.addEventListener('click', () => formProduk());
       return;
     }
@@ -160,13 +170,15 @@ export function render(view) {
               ${kritis ? badge('Menipis', 'warn') : ''}
               ${titip > 0 ? badge(`Titip ${num(titip)}`, 'violet') : ''}
             </div>
-            <div class="ri-sub">${esc(p.kode)} · ${esc(p.merk || '-')} · Agen ${rp(p.hargaAgen)} / Reseller ${rp(p.hargaReseller)}</div>
+            <div class="ri-sub">${esc(p.kode)} · ${esc(p.merk || '-')} · ${adalah('mitra')
+              ? rp(mitraAktif()?.tipe === 'agen' ? p.hargaAgen : p.hargaReseller)
+              : `Agen ${rp(p.hargaAgen)} / Reseller ${rp(p.hargaReseller)}`}</div>
           </div>
           <div class="ri-right" data-detail>
             <div class="ri-val ${kritis ? 'neg' : ''}">${num(stok)}</div>
             <div class="ri-note">${esc(p.satuan || 'Slop')}</div>
           </div>
-          <button class="icon-btn" data-menu title="Aksi">⋮</button>
+          ${bolehUbah() ? '<button class="icon-btn" data-menu title="Aksi">⋮</button>' : ''}
         </div>`;
     }).join('');
   };
