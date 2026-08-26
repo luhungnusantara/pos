@@ -110,9 +110,44 @@ melainkan penyimpanannya:
 - Tetap **ekspor cadangan JSON** secara berkala. Ini satu-satunya pengaman kalau
   perangkat hilang atau rusak.
 
-> ⚠️ **Belum ada sinkronisasi antar perangkat.** Tiap perangkat berdiri sendiri —
-> transaksi yang dicatat di HP sales tidak muncul di HP pemilik. Lihat `BRIEF.md`
-> untuk rencana sinkronisasi ke server pusat, yang membutuhkan backend terpisah.
+---
+
+## Sinkronisasi antar perangkat (opsional)
+
+Secara bawaan aplikasi bekerja sendiri di satu perangkat. Bila alamat server diisi
+di **Pengaturan → Sinkronisasi Server**, transaksi ikut disetor ke server pusat
+sehingga pemilik bisa melihat catatan seluruh sales dan agen.
+
+Server: [luhungnusantara/luhungbackend](https://github.com/luhungnusantara/luhungbackend)
+(Go + Fiber + MongoDB, jalur `/pos/*`).
+
+**Yang terpenting: menyalakan server tidak mengubah cara aplikasi mencatat.**
+Transaksi selalu ditulis ke perangkat lebih dulu, lalu disetor belakangan. Tidak
+ada satu pun layar yang menunggu jaringan.
+
+| Keadaan | Yang terjadi |
+| --- | --- |
+| Ada sinyal | Setoran berjalan otomatis di latar belakang |
+| Tidak ada sinyal | Transaksi tetap tercatat, masuk antrean IndexedDB |
+| Sinyal kembali | Antrean menyusul sendiri — lewat peristiwa `online`, saat aplikasi dibuka, berkala tiap 3 menit, dan Background Sync |
+| Aplikasi ditutup | Background Sync tetap menyetor di latar belakang (belum didukung iOS) |
+
+Penanda status ada di kepala halaman (⏳ menunggu · 🔄 mengirim · ✅ tersimpan)
+dan per-nota di daftar Riwayat Penjualan.
+
+### Tiga hal yang membuatnya tidak merusak data
+
+**Tidak ada transaksi ganda.** Tiap rekaman dikenali dari id buatan perangkat,
+bukan urutan kedatangan. Antrean yang sama boleh dikirim ulang berapa kali pun —
+kejadian biasa saat sinyal putus di tengah kiriman.
+
+**Komisi tetap adil.** Yang dikirim adalah waktu jualan asli di lapangan, dan
+server tidak pernah menimpanya dengan waktu terima. Setoran yang tertahan tiga
+hari tetap masuk ke tanggal jualan aslinya.
+
+**Peran ditegakkan di server.** Sales dan agen hanya bisa membaca dan menyetor
+data miliknya sendiri. Ini berbeda dari mode peran perangkat di bawah, yang hanya
+menyembunyikan menu.
 
 ---
 
@@ -189,6 +224,8 @@ js/core/
   bayar.js            dialog pelunasan piutang & hutang
   periode.js          pemilih rentang tanggal
   luring.js           status jaringan, penyimpanan tetap, pembaruan aplikasi
+  antrean.js          antrean setoran di IndexedDB (tahan tutup paksa)
+  sinkron.js          setor & tarik data ke server, deteksi perubahan
   seed.js             data contoh
 js/pages/             satu berkas per halaman (15 halaman)
 ```

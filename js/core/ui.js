@@ -176,6 +176,9 @@ export function renderField(f, data = {}) {
     case 'tel':
       kontrol = `<input type="tel" inputmode="tel" class="input" ${attr} value="${esc(v)}">`;
       break;
+    case 'password':
+      kontrol = `<input type="password" class="input" autocomplete="off" ${attr} value="${esc(v)}">`;
+      break;
     default:
       kontrol = `<input type="text" class="input" ${attr} value="${esc(v)}">`;
   }

@@ -194,6 +194,20 @@ img{max-width:100%}
 .btn-xs{min-height:28px;padding:0 8px;font-size:12px;border-radius:7px;gap:4px}
 .btn-block{width:100%}
 .btn:disabled{opacity:.5;pointer-events:none}
+/* Penanda sinkronisasi ke server. Warna hanya dipakai untuk kegagalan;
+   antrean yang menunggu sinyal adalah keadaan normal, bukan masalah. */
+.pil-sinkron{
+  flex:none;display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+  font-size:11px;font-weight:700;background:var(--surface-3);color:var(--muted);
+  border:1px solid var(--border);cursor:pointer;
+}
+.pil-sinkron.kirim{background:var(--primary-soft);color:var(--primary);border-color:transparent}
+.pil-sinkron.tertunda{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pil-sinkron.galat{background:var(--bad-soft);color:var(--bad);border-color:transparent}
+.pil-sinkron.kirim .ikon{animation:putar 1.1s linear infinite}
+@keyframes putar{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){ .pil-sinkron.kirim .ikon{animation:none} }
+
 /* Penanda luring. Sengaja bernada tenang, bukan merah tanda bahaya:
    aplikasi ini memang dirancang jalan penuh tanpa internet. */
 .pil-luring{
@@ -274,6 +288,9 @@ img{max-width:100%}
 .input.num,.num{text-align:right;font-variant-numeric:tabular-nums}
 .hint{font-size:11.5px;color:var(--muted);margin-top:4px}
 .hint.warn{color:var(--warn)}
+.tanda-setor{font-size:10.5px}
+.tanda-setor.antre{color:var(--warn)}
+.tanda-setor.sudah{color:var(--muted)}
 .kv .v.ok{color:var(--ok)}
 .kv .v.warn{color:var(--warn)}
 .err{font-size:11.5px;color:var(--bad);margin-top:4px;font-weight:600}

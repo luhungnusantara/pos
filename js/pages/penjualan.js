@@ -9,6 +9,7 @@ import { modalBayarPiutang } from '../core/bayar.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
 import { isOwner, bolehLihatModal, bolehTransaksi, filterPenjualan } from '../core/peran.js';
+import { aktif as sinkronAktif, kunciTertunda, onSinkron } from '../core/sinkron.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, unduh, toCSV, todayISO,
 } from '../core/utils.js';
@@ -173,6 +174,24 @@ export function render(view) {
     <div class="card"><div class="list" id="daftar"></div></div>`;
 
   const box = view.querySelector('#daftar');
+
+  /* Penanda apakah tiap nota sudah tersetor ke server (BRIEF poin 4).
+     Sengaja tidak memakai warna merah untuk yang masih mengantre: catatannya
+     sudah aman di perangkat, hanya belum sampai ke pusat. */
+  async function tandaiSetoran(kotak) {
+    if (!sinkronAktif()) return;
+    const menunggu = await kunciTertunda();
+    kotak.querySelectorAll('[data-setor]').forEach(el => {
+      const antre = menunggu.has(`penjualan/${el.dataset.setor}`);
+      el.textContent = antre ? ' · ⏳ belum tersetor' : ' · ✅ tersetor';
+      el.className = `tanda-setor ${antre ? 'antre' : 'sudah'}`;
+      el.title = antre
+        ? 'Sudah tersimpan di perangkat, menunggu dikirim ke server.'
+        : 'Sudah tersimpan di server pusat.';
+    });
+  }
+  if (sinkronAktif()) onSinkron(() => { if (view.isConnected) tandaiSetoran(box); });
+
   const gambar = () => {
     const list = daftar();
     if (!list.length) {
@@ -190,7 +209,8 @@ export function render(view) {
             ${st === 'batal' ? badge('Batal', 'bad') : st === 'lunas' ? badge('Lunas', 'ok') : badge(st === 'sebagian' ? 'Sebagian' : 'Piutang', 'warn')}
             ${j.jenis === 'konsinyasi' ? badge('Konsinyasi', 'violet') : ''}
           </div>
-          <div class="ri-sub">${esc(j.noRef)} · ${fmtTglPendek(j.tanggal)} · ${j.items.length} item · ${num(sum(j.items, i => i.qty))} unit</div>
+          <div class="ri-sub">${esc(j.noRef)} · ${fmtTglPendek(j.tanggal)} · ${j.items.length} item · ${num(sum(j.items, i => i.qty))} unit${
+            sinkronAktif() ? `<span class="tanda-setor" data-setor="${j.id}"></span>` : ''}</div>
         </div>
         <div class="ri-right">
           <div class="ri-val ${st === 'batal' ? 'muted' : ''}" ${st === 'batal' ? 'style="text-decoration:line-through"' : ''}>${rp(j.total)}</div>
@@ -198,6 +218,7 @@ export function render(view) {
         </div>
       </div>`;
     }).join('');
+    tandaiSetoran(box);
   };
   gambar();
 

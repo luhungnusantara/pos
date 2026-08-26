@@ -7,7 +7,7 @@
    bar", dan di situ strategi jaringan-dulu justru menggantung sampai time-out.
    Salinan baru diambil diam-diam untuk dipakai pada pemuatan berikutnya. */
 
-const VERSI = 'v3';
+const VERSI = 'v4';
 const CACHE = `pos-rokok-${VERSI}`;
 const KERANGKA = './index.html';
 
@@ -20,7 +20,7 @@ const ASET = [
   './js/core/store.js', './js/core/domain.js', './js/core/ui.js', './js/core/utils.js',
   './js/core/router.js', './js/core/seed.js', './js/core/struk.js', './js/core/bayar.js',
   './js/core/periode.js', './js/core/peran.js', './js/core/ganti-peran.js',
-  './js/core/luring.js',
+  './js/core/luring.js', './js/core/sinkron.js', './js/core/antrean.js',
   './js/pages/dashboard.js', './js/pages/kasir.js', './js/pages/penjualan.js',
   './js/pages/konsinyasi.js', './js/pages/produk.js', './js/pages/stok.js',
   './js/pages/opname.js', './js/pages/pembelian.js', './js/pages/mitra.js',
@@ -92,4 +92,82 @@ self.addEventListener('fetch', e => {
     const baru = await segarkan(req, cache);
     return baru || new Response('', { status: 504, statusText: 'Luring' });
   })());
+});
+
+/* ---------- Background Sync ----------
+   Browser membangunkan service worker begitu jaringan pulih dan menyetor
+   antrean yang tertinggal, bahkan saat aplikasi sudah ditutup. Antrean dan
+   token dibaca dari IndexedDB karena service worker tidak punya akses ke
+   localStorage. iOS belum mendukung ini, karena itu aplikasi tetap memasang
+   pemicu biasa (peristiwa online, aplikasi dibuka, dan berkala). */
+
+const IDB_NAMA = 'pos_sinkron';
+
+function idbBuka() {
+  return new Promise((selesai, gagal) => {
+    const p = indexedDB.open(IDB_NAMA);
+    p.onsuccess = () => selesai(p.result);
+    p.onerror = () => gagal(p.error);
+  });
+}
+
+function idbSemua(d, toko) {
+  return new Promise((selesai, gagal) => {
+    const t = d.transaction(toko, 'readonly').objectStore(toko).getAll();
+    t.onsuccess = () => selesai(t.result || []);
+    t.onerror = () => gagal(t.error);
+  });
+}
+
+function idbAmbil(d, toko, kunci) {
+  return new Promise((selesai, gagal) => {
+    const t = d.transaction(toko, 'readonly').objectStore(toko).get(kunci);
+    t.onsuccess = () => selesai(t.result);
+    t.onerror = () => gagal(t.error);
+  });
+}
+
+function idbHapus(d, toko, kunci) {
+  return new Promise((selesai, gagal) => {
+    const t = d.transaction(toko, 'readwrite');
+    kunci.forEach(k => t.objectStore(toko).delete(k));
+    t.oncomplete = () => selesai();
+    t.onerror = () => gagal(t.error);
+  });
+}
+
+async function setorAntrean() {
+  const d = await idbBuka();
+  const [server, token, perangkat] = await Promise.all([
+    idbAmbil(d, 'kunci', 'server'),
+    idbAmbil(d, 'kunci', 'token'),
+    idbAmbil(d, 'kunci', 'perangkat'),
+  ]);
+  if (!server || !token) return;
+
+  const antrean = (await idbSemua(d, 'antrean')).slice(0, 500);
+  if (!antrean.length) return;
+
+  const res = await fetch(server.replace(/\/+$/, '') + '/pos/sinkron/kirim', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Login: token },
+    body: JSON.stringify({
+      perangkat,
+      rekaman: antrean.map(a => ({
+        koleksi: a.koleksi, id: a.id, data: a.data,
+        waktu_lokal: a.waktu_lokal, diubah: a.diubah, dihapus: a.dihapus,
+      })),
+    }),
+  });
+  // Gagal kirim: biarkan antrean utuh dan lempar galat supaya browser
+  // menjadwalkan percobaan ulang sendiri.
+  if (!res.ok) throw new Error('setoran ditolak: ' + res.status);
+
+  await idbHapus(d, 'antrean', antrean.map(a => a.no));
+  const klien = await self.clients.matchAll();
+  klien.forEach(c => c.postMessage({ tipe: 'sinkron-selesai' }));
+}
+
+self.addEventListener('sync', e => {
+  if (e.tag === 'pos-sinkron') e.waitUntil(setorAntrean());
 });

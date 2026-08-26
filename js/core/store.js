@@ -20,6 +20,7 @@ const kosong = () => ({
     tempoDefault: 14,
     peringatanStok: true,
     pinOwner: '',           // bila diisi, kembali ke peran Pemilik butuh PIN
+    server: '',             // alamat API sinkronisasi; kosong = hanya perangkat ini
   },
   produk: [],
   mitra: [],       // agen & reseller
@@ -89,6 +90,8 @@ export function save(langsung = false) {
       console.error('Gagal menyimpan:', e);
       alert('Penyimpanan penuh atau diblokir browser. Ekspor cadangan data Anda melalui menu Pengaturan.');
     }
+    // penanda bagi modul sinkronisasi bahwa ada yang perlu diperiksa
+    try { window.dispatchEvent(new CustomEvent('pos:tersimpan')); } catch { /* di luar peramban */ }
   };
   langsung ? tulis() : (timer = setTimeout(tulis, 180));
   emit();

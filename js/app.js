@@ -7,6 +7,7 @@ import { komisiTertunda } from './core/domain.js';
 import { PERAN, peranAktif, bolehBuka, namaPengguna, adalah, salesAktif } from './core/peran.js';
 import { dialogGantiPeran } from './core/ganti-peran.js';
 import { daftarkanServiceWorker, onJaringan, mintaPenyimpananTetap } from './core/luring.js';
+import { onSinkron, jalankan, pasangPemicu, aktif as sinkronAktif, KEADAAN } from './core/sinkron.js';
 
 /* ---------- daftar menu ---------- */
 const MENU = [
@@ -226,6 +227,45 @@ function siapkanLuring() {
   daftarkanServiceWorker({
     onPembaruan: terapkan => toast('Versi baru tersedia. Ketuk untuk memuat ulang.', 'warn', 8000, terapkan),
   });
+
+  siapkanSinkron();
+}
+
+/* ---------- sinkronisasi ke server ---------- */
+const TAMPILAN_SINKRON = {
+  [KEADAAN.kirim]:    { ikon: '🔄', teks: 'Mengirim', kelas: 'kirim' },
+  [KEADAAN.tertunda]: { ikon: '⏳', teks: 'Menunggu', kelas: 'tertunda' },
+  [KEADAAN.galat]:    { ikon: '⚠️', teks: 'Gagal',    kelas: 'galat' },
+  [KEADAAN.siap]:     { ikon: '✅', teks: 'Tersimpan', kelas: '' },
+};
+
+function siapkanSinkron() {
+  if (!sinkronAktif()) return;   // server belum diatur — aplikasi tetap jalan lokal
+  const pil = $('#pilSinkron');
+
+  onSinkron(({ keadaan, tertunda, pesan }) => {
+    if (!pil) return;
+    if (keadaan === KEADAAN.mati) { pil.hidden = true; return; }
+    const t = TAMPILAN_SINKRON[keadaan] || TAMPILAN_SINKRON[KEADAAN.siap];
+    pil.hidden = false;
+    pil.className = `pil-sinkron ${t.kelas}`;
+    pil.innerHTML = `<span class="ikon">${t.ikon}</span><span>${esc(
+      tertunda ? `${t.teks} ${tertunda}` : t.teks)}</span>`;
+    pil.title = pesan
+      ? `Gagal menyetor: ${pesan}. Data tetap aman di perangkat dan akan dikirim ulang otomatis.`
+      : tertunda
+        ? `${tertunda} catatan menunggu dikirim ke server. Semuanya sudah tersimpan di perangkat.`
+        : 'Semua catatan sudah tersimpan di server.';
+  });
+
+  if (pil) pil.onclick = () => jalankan({ paksa: true });
+
+  // service worker memberi kabar setelah menyetor antrean di latar belakang
+  navigator.serviceWorker?.addEventListener('message', e => {
+    if (e.data?.tipe === 'sinkron-selesai') jalankan();
+  });
+
+  pasangPemicu();
 }
 
 document.addEventListener('DOMContentLoaded', mulai);

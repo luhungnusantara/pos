@@ -8,6 +8,127 @@ import { terapkanTema } from '../app.js';
 import { esc, rp, num, unduh, todayISO } from '../core/utils.js';
 import { statusPenyimpanan, mintaPenyimpananTetap, onJaringan,
          onBisaDipasang, pasangAplikasi } from '../core/luring.js';
+import { onSinkron, jalankan, masuk, daftar as daftarToko, keluar as keluarSinkron,
+         akunTersimpan, tokoTersimpan, alamatServer, KEADAAN } from '../core/sinkron.js';
+
+/* Kartu sinkronisasi. Ditulis dengan satu pesan utama: menyalakan server itu
+   pilihan, bukan keharusan — tanpa server pun aplikasi tetap berfungsi penuh. */
+async function gambarSinkron(view) {
+  const kotak = view.querySelector('#kartuSinkron');
+  if (!kotak) return;
+  const alamat = alamatServer();
+  const akun = alamat ? await akunTersimpan() : null;
+  const toko = alamat ? await tokoTersimpan() : null;
+
+  const PERAN_TEKS = { owner: 'Pemilik', sales: 'Sales', mitra: 'Agen / Reseller' };
+
+  kotak.innerHTML = `
+    <div class="field">
+      <label class="lbl">Alamat server</label>
+      <input class="input" id="snAlamat" type="url" inputmode="url" autocomplete="off"
+             placeholder="https://api.contoh.id" value="${esc(alamat)}">
+      <div class="hint">Kosongkan bila hanya dipakai di satu perangkat.</div>
+    </div>
+    ${!alamat ? '' : akun ? `
+      <div class="kv"><span class="k">Masuk sebagai</span>
+        <span class="v">${esc(akun.nama || '-')} · ${esc(PERAN_TEKS[akun.peran] || akun.peran || '')}</span></div>
+      <div class="kv"><span class="k">Toko</span>
+        <span class="v">${esc(toko?.nama || '-')}${toko?.kode ? ` (${esc(toko.kode)})` : ''}</span></div>
+      <div class="kv"><span class="k">Status</span><span class="v" id="snStatus">—</span></div>
+      <div class="btn-row mt12">
+        <button class="btn btn-primary grow" id="snSekarang">🔄 Sinkronkan Sekarang</button>
+        <button class="btn grow" id="snKeluar">Keluar</button>
+      </div>` : `
+      <div class="btn-row mt12">
+        <button class="btn btn-primary grow" id="snMasuk">🔑 Masuk</button>
+        <button class="btn grow" id="snDaftar">Daftarkan Toko Baru</button>
+      </div>`}
+    <div class="hint mt12">Data selalu dicatat di perangkat lebih dulu, lalu disetor
+      ke server saat ada sinyal. <b>Tidak ada transaksi yang hilang</b> kalau jaringan
+      mati di tengah jalan.</div>`;
+
+  const simpanAlamat = () => {
+    const nilai = view.querySelector('#snAlamat').value.trim().replace(/\/+$/, '');
+    if (nilai === alamatServer()) return;
+    setPengaturan({ server: nilai });
+    sukses(nilai ? 'Alamat server disimpan' : 'Sinkronisasi dimatikan');
+    gambarSinkron(view);
+  };
+  view.querySelector('#snAlamat').addEventListener('change', simpanAlamat);
+
+  if (akun) {
+    onSinkron(({ keadaan, tertunda, pesan }) => {
+      const el = kotak.querySelector('#snStatus');
+      if (!el) return;
+      const teks = {
+        [KEADAAN.kirim]: '🔄 Sedang mengirim',
+        [KEADAAN.tertunda]: `⏳ ${tertunda} catatan menunggu sinyal`,
+        [KEADAAN.galat]: `⚠️ ${pesan || 'gagal'} — akan dicoba lagi otomatis`,
+        [KEADAAN.siap]: '✅ Semua sudah tersimpan di server',
+      }[keadaan] || '—';
+      el.textContent = teks;
+      el.className = `v ${keadaan === KEADAAN.galat ? 'warn' : keadaan === KEADAAN.siap ? 'ok' : ''}`;
+    });
+    kotak.querySelector('#snSekarang').onclick = async () => {
+      (await jalankan({ paksa: true })) ? sukses('Sinkronisasi selesai')
+                                        : gagal('Belum berhasil — akan dicoba lagi otomatis');
+    };
+    kotak.querySelector('#snKeluar').onclick = async () => {
+      const ya = await konfirmasi({
+        judul: 'Keluar dari server?', ok: 'Ya, keluar',
+        pesan: 'Data di perangkat ini <b>tetap utuh</b>. Yang dihapus hanya token dan antrean kiriman.',
+      });
+      if (!ya) return;
+      await keluarSinkron();
+      sukses('Sudah keluar');
+      gambarSinkron(view);
+    };
+  } else if (alamat) {
+    kotak.querySelector('#snMasuk').onclick = () => formMasuk(view);
+    kotak.querySelector('#snDaftar').onclick = () => formDaftarToko(view);
+  }
+}
+
+function formMasuk(view) {
+  formModal({
+    judul: 'Masuk ke Server',
+    field: [
+      { name: 'phone', label: 'Nomor HP', wajib: true, lebar: 'full', placeholder: '628xxxxxxxxx' },
+      { name: 'password', label: 'Password', tipe: 'password', wajib: true, lebar: 'full' },
+    ],
+    onSimpan: async d => {
+      try {
+        const hasil = await masuk(d.phone.trim(), d.password);
+        sukses(`Masuk sebagai ${hasil.user?.nama || d.phone}`);
+        gambarSinkron(view);
+        jalankan({ paksa: true });
+      } catch (e) { gagal(e.message); throw e; }
+    },
+  });
+}
+
+function formDaftarToko(view) {
+  formModal({
+    judul: 'Daftarkan Toko Baru',
+    field: [
+      { name: 'nama_toko', label: 'Nama Toko / Distributor', wajib: true, lebar: 'full' },
+      { name: 'nama', label: 'Nama Pemilik', wajib: true, lebar: 'full' },
+      { name: 'phone', label: 'Nomor HP', wajib: true, lebar: 'full', placeholder: '628xxxxxxxxx' },
+      { name: 'password', label: 'Password (min. 6 karakter)', tipe: 'password', wajib: true, lebar: 'full' },
+    ],
+    onSimpan: async d => {
+      try {
+        await daftarToko({
+          nama_toko: d.nama_toko, nama: d.nama,
+          phone: d.phone.trim(), password: d.password,
+        });
+        sukses('Toko terdaftar. Data di perangkat ini akan disetor ke server.');
+        gambarSinkron(view);
+        jalankan({ paksa: true });
+      } catch (e) { gagal(e.message); throw e; }
+    },
+  });
+}
 
 const mb = b => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`);
 
@@ -62,6 +183,7 @@ async function gambarLuring(view) {
     hasil ? sukses('Penyimpanan dikunci — data aman dari pembersihan otomatis')
           : gagal('Peramban menolak. Pasang aplikasi ke layar utama lalu coba lagi.');
     gambarLuring(view);
+  gambarSinkron(view);
   };
 }
 
@@ -206,6 +328,13 @@ export function render(view) {
     </div>
 
     <div class="card mb12">
+      <div class="card-head"><h2>☁️ Sinkronisasi Server</h2></div>
+      <div class="card-body" id="kartuSinkron">
+        <div class="hint">Memuat…</div>
+      </div>
+    </div>
+
+    <div class="card mb12">
       <div class="card-head"><h2>📶 Mode Luring (Offline)</h2></div>
       <div class="card-body" id="kartuLuring">
         <div class="hint">Memeriksa status penyimpanan…</div>
@@ -276,6 +405,7 @@ export function render(view) {
   };
 
   gambarLuring(view);
+  gambarSinkron(view);
 
   view.querySelector('#ekspor').onclick = () => {
     unduh(`cadangan-pos-${todayISO()}.json`, exportDB());
