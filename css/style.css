@@ -457,6 +457,7 @@ html[data-theme="dark"] .toast{background:#e2e8f0;color:#0f172a}
 }
 .receipt{font-family:var(--mono);font-size:12px;line-height:1.45;max-width:320px;margin:0 auto;color:#0f172a;background:#fff;padding:10px}
 .receipt .r-c{text-align:center}
+.receipt .r-logo{display:block;width:54px;height:54px;margin:2px auto 7px}
 .receipt .r-line{border-top:1px dashed #94a3b8;margin:6px 0}
 .receipt .r-row{display:flex;justify-content:space-between;gap:8px}
 .receipt .r-b{font-weight:700}

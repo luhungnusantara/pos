@@ -9,6 +9,7 @@ export function htmlStruk(jual) {
   const sisa = toNum(jual.total) - toNum(jual.dibayar);
   return `
   <div class="receipt" id="areaStruk">
+    <img class="r-logo" src="img/logo.svg" alt="">
     <div class="r-c r-b" style="font-size:14px">${esc(p.namaToko || 'POS ROKOK')}</div>
     ${p.alamat ? `<div class="r-c">${esc(p.alamat)}</div>` : ''}
     ${p.telp ? `<div class="r-c">Telp: ${esc(p.telp)}</div>` : ''}
