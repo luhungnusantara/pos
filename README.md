@@ -139,6 +139,10 @@ baris agar komisi tidak dihitung berlebih.
 index.html            kerangka aplikasi (sidebar, topbar, bottom nav)
 manifest.json         agar bisa dipasang di layar utama
 sw.js                 cache offline (jaringan lebih dulu)
+icon.svg              ikon aplikasi (emblem penuh di kotak teal)
+favicon.svg           ikon tab peramban (hanya glif tengah, tetap jelas di 16px)
+apple-touch-icon.png  ikon layar utama iPhone (180px, opaque)
+img/                  berkas logo — lihat bagian Logo & ikon
 css/style.css         seluruh gaya, mobile-first + tema terang/gelap
 js/app.js             titik masuk: menu, tema, drawer, router
 js/core/
@@ -158,6 +162,22 @@ js/pages/             satu berkas per halaman (15 halaman)
 
 Setiap halaman mengekspor `render(view, params)`; router memuatnya secara dinamis
 (`import()`) sehingga hanya kode halaman yang dibuka saja yang diunduh.
+
+### Logo & ikon
+
+Logo memakai emblem **Gelar Linuhung Nusantara**, ditelusuri jadi vektor dari berkas
+sumber sehingga tajam di segala ukuran (kemiripan dengan sumber IoU 0,995).
+
+| Berkas | Isi | Dipakai di |
+| --- | --- | --- |
+| `img/logo.svg` / `logo-putih.svg` | emblem penuh + teks melingkar | tampilan besar, cetak |
+| `img/mark.svg` / `mark-putih.svg` | hanya glif tengah | lencana sidebar, favicon |
+| `img/icon-192.png`, `icon-512.png` | emblem putih di kotak teal | ikon PWA Android |
+| `img/icon-maskable-512.png` | versi *maskable* (ruang aman 80%) | ikon adaptif Android |
+| `img/logo.png` / `logo-putih.png` | emblem 512px latar transparan | keperluan umum |
+
+Teks melingkar tidak terbaca di bawah ±64px, jadi ukuran kecil (tab peramban, lencana
+sidebar 38px) sengaja memakai **mark** — glif tengahnya saja.
 
 ---
 

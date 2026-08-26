@@ -1,13 +1,16 @@
 /* sw.js — cache offline sederhana.
    Strategi: jaringan lebih dulu (selalu versi terbaru), cache dipakai
    hanya saat perangkat sedang offline. */
-const CACHE = 'pos-rokok-v1';
+const CACHE = 'pos-rokok-v2';
 const ASET = [
-  './', './index.html', './css/style.css', './manifest.json', './icon.svg',
+  './', './index.html', './css/style.css', './manifest.json',
+  './icon.svg', './favicon.svg', './apple-touch-icon.png',
+  './img/mark-putih.svg', './img/logo.svg',
+  './img/icon-192.png', './img/icon-512.png', './img/icon-maskable-512.png',
   './js/app.js',
   './js/core/store.js', './js/core/domain.js', './js/core/ui.js', './js/core/utils.js',
   './js/core/router.js', './js/core/seed.js', './js/core/struk.js', './js/core/bayar.js',
-  './js/core/periode.js',
+  './js/core/periode.js', './js/core/peran.js', './js/core/ganti-peran.js',
   './js/pages/dashboard.js', './js/pages/kasir.js', './js/pages/penjualan.js',
   './js/pages/konsinyasi.js', './js/pages/produk.js', './js/pages/stok.js',
   './js/pages/opname.js', './js/pages/pembelian.js', './js/pages/mitra.js',
