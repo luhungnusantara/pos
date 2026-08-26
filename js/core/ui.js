@@ -6,11 +6,18 @@ import { esc, toNum, toInt, num, $, $$, cocok, debounce, initial } from './utils
    ========================================================= */
 const toastRoot = () => document.getElementById('toastRoot');
 
-export function toast(pesan, tipe = '', ms = 2600) {
+export function toast(pesan, tipe = '', ms = 2600, aksi = null) {
   const el = document.createElement('div');
-  el.className = `toast ${tipe}`;
+  el.className = `toast ${tipe}${aksi ? ' toast-aksi' : ''}`;
   const ikon = { ok: '✅', bad: '⛔', warn: '⚠️' }[tipe] || 'ℹ️';
   el.innerHTML = `<span>${ikon}</span><span>${esc(pesan)}</span>`;
+  if (aksi) {
+    el.setAttribute('role', 'button');
+    el.setAttribute('tabindex', '0');
+    const jalan = () => { el.remove(); aksi(); };
+    el.addEventListener('click', jalan);
+    el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jalan(); } });
+  }
   toastRoot().appendChild(el);
   setTimeout(() => {
     el.style.transition = 'opacity .2s, transform .2s';

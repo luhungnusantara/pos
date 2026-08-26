@@ -84,6 +84,38 @@ susut pada laporan laba rugi.
 
 ---
 
+## Mode luring (offline)
+
+Aplikasi berjalan **penuh tanpa internet** — kasir, konsinyasi, stok, sampai
+laporan — karena semua data diolah di perangkat, bukan di server.
+
+| Keadaan | Yang terjadi |
+| --- | --- |
+| Tidak ada sinyal | Aplikasi tetap terbuka dari cache; muncul penanda **Luring** di kepala halaman |
+| Sinyal satu bar | Halaman tetap tampil seketika — aset disajikan dari cache lebih dulu, tidak menunggu jaringan |
+| Kembali online | Versi baru diambil diam-diam; muncul tawaran *"Versi baru tersedia"* yang bisa diketuk |
+
+### Menjaga data tidak terhapus browser
+
+Karena seluruh data ada di perangkat, yang justru perlu dijaga bukan koneksinya
+melainkan penyimpanannya:
+
+- Aplikasi otomatis meminta izin **penyimpanan tetap** (`storage.persist()`) agar
+  browser tidak membuang data saat ruang menipis.
+- **Pengguna iPhone/iPad wajib menambahkan aplikasi ke Layar Utama.** Selama masih
+  dibuka lewat tab Safari biasa, iOS membersihkan datanya otomatis setelah
+  **7 hari** tidak dibuka.
+- Status penyimpanan, ruang terpakai, dan tombol pasang ada di **Pengaturan →
+  Mode Luring**.
+- Tetap **ekspor cadangan JSON** secara berkala. Ini satu-satunya pengaman kalau
+  perangkat hilang atau rusak.
+
+> ⚠️ **Belum ada sinkronisasi antar perangkat.** Tiap perangkat berdiri sendiri —
+> transaksi yang dicatat di HP sales tidak muncul di HP pemilik. Lihat `BRIEF.md`
+> untuk rencana sinkronisasi ke server pusat, yang membutuhkan backend terpisah.
+
+---
+
 ## Mode peran perangkat
 
 Aplikasi punya **tiga tampilan** yang dipilih lewat tombol peran di bagian bawah menu
@@ -156,6 +188,7 @@ js/core/
   struk.js            tampilan, cetak, dan berbagi nota
   bayar.js            dialog pelunasan piutang & hutang
   periode.js          pemilih rentang tanggal
+  luring.js           status jaringan, penyimpanan tetap, pembaruan aplikasi
   seed.js             data contoh
 js/pages/             satu berkas per halaman (15 halaman)
 ```

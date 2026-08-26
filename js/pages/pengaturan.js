@@ -6,6 +6,64 @@ import { PERAN, peranAktif, namaPengguna, pinDipasang } from '../core/peran.js';
 import { dialogGantiPeran } from '../core/ganti-peran.js';
 import { terapkanTema } from '../app.js';
 import { esc, rp, num, unduh, todayISO } from '../core/utils.js';
+import { statusPenyimpanan, mintaPenyimpananTetap, onJaringan,
+         onBisaDipasang, pasangAplikasi } from '../core/luring.js';
+
+const mb = b => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`);
+
+/* Status luring. Ditulis apa adanya: aplikasi ini memang berjalan penuh tanpa
+   internet, yang perlu dijaga justru agar browser tidak membuang datanya. */
+async function gambarLuring(view) {
+  const kotak = view.querySelector('#kartuLuring');
+  if (!kotak) return;
+  const s = await statusPenyimpanan();
+
+  const barisTetap = s.tetap === true
+    ? ['ok', '🔒 Aman', 'Browser tidak akan menghapus data ini sendiri.']
+    : s.tetap === false
+      ? ['warn', '⚠️ Belum dikunci',
+         'Browser boleh membuang data ini saat ruang penyimpanan menipis.']
+      : ['', '— Tidak diketahui', 'Peramban ini tidak melaporkan status penyimpanan.'];
+
+  kotak.innerHTML = `
+    <div class="kv"><span class="k">Jaringan</span>
+      <span class="v" id="lrJaringan">—</span></div>
+    <div class="kv"><span class="k">Dipasang di layar utama</span>
+      <span class="v">${s.dipasang ? 'Ya' : 'Belum'}</span></div>
+    <div class="kv"><span class="k">Penyimpanan tetap</span>
+      <span class="v ${barisTetap[0]}">${barisTetap[1]}</span></div>
+    ${s.kuota ? `<div class="kv"><span class="k">Terpakai</span>
+      <span class="v">${mb(s.pakai)} dari ${mb(s.kuota)}</span></div>` : ''}
+    <div class="hint mt12">${barisTetap[2]}</div>
+    ${s.iOS && !s.dipasang ? `<div class="hint warn mt8">📱 <b>Pengguna iPhone/iPad:</b>
+      selama aplikasi belum ditambahkan ke Layar Utama, iOS membersihkan datanya
+      otomatis setelah <b>7 hari</b> tidak dibuka. Buka menu Bagikan → <b>Add to Home Screen</b>.</div>` : ''}
+    <div class="btn-row mt12">
+      ${s.tetap === false ? '<button class="btn grow" id="lrKunci">🔒 Kunci Penyimpanan</button>' : ''}
+      <button class="btn btn-primary grow" id="lrPasang" hidden>📲 Pasang ke Layar Utama</button>
+    </div>
+    <div class="hint mt8">Seluruh fitur — kasir, konsinyasi, stok, laporan — berjalan
+      tanpa internet karena data diolah di perangkat ini, bukan di server.</div>`;
+
+  onJaringan(ada => {
+    const el = kotak.querySelector('#lrJaringan');
+    if (el) { el.textContent = ada ? 'Terhubung' : 'Luring'; el.className = `v ${ada ? 'ok' : ''}`; }
+  });
+
+  const tPasang = kotak.querySelector('#lrPasang');
+  onBisaDipasang(bisa => { if (tPasang) tPasang.hidden = !bisa; });
+  if (tPasang) tPasang.onclick = async () => {
+    (await pasangAplikasi()) ? sukses('Aplikasi dipasang ke layar utama') : null;
+  };
+
+  const tKunci = kotak.querySelector('#lrKunci');
+  if (tKunci) tKunci.onclick = async () => {
+    const hasil = await mintaPenyimpananTetap();
+    hasil ? sukses('Penyimpanan dikunci — data aman dari pembersihan otomatis')
+          : gagal('Peramban menolak. Pasang aplikasi ke layar utama lalu coba lagi.');
+    gambarLuring(view);
+  };
+}
 
 const ukuranData = () => {
   const b = new Blob([exportDB()]).size;
@@ -148,6 +206,13 @@ export function render(view) {
     </div>
 
     <div class="card mb12">
+      <div class="card-head"><h2>📶 Mode Luring (Offline)</h2></div>
+      <div class="card-body" id="kartuLuring">
+        <div class="hint">Memeriksa status penyimpanan…</div>
+      </div>
+    </div>
+
+    <div class="card mb12">
       <div class="card-head"><h2>💾 Data & Cadangan</h2></div>
       <div class="card-body">
         <div class="grid g4 mb12">
@@ -209,6 +274,8 @@ export function render(view) {
     view.querySelectorAll('#segTema button').forEach(x => x.classList.toggle('active', x === b));
     sukses('Tema diperbarui');
   };
+
+  gambarLuring(view);
 
   view.querySelector('#ekspor').onclick = () => {
     unduh(`cadangan-pos-${todayISO()}.json`, exportDB());

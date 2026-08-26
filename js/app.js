@@ -6,6 +6,7 @@ import { $, esc } from './core/utils.js';
 import { komisiTertunda } from './core/domain.js';
 import { PERAN, peranAktif, bolehBuka, namaPengguna, adalah, salesAktif } from './core/peran.js';
 import { dialogGantiPeran } from './core/ganti-peran.js';
+import { daftarkanServiceWorker, onJaringan, mintaPenyimpananTetap } from './core/luring.js';
 
 /* ---------- daftar menu ---------- */
 const MENU = [
@@ -211,15 +212,19 @@ function mulai() {
     if (e.target.closest('button,.btn,.nav-item,.bn-item')) e.preventDefault();
   }, { passive: false });
 
-  daftarkanServiceWorker();
+  siapkanLuring();
 }
 
-/* agar aplikasi bisa dipasang di layar utama & tetap terbuka saat offline */
-function daftarkanServiceWorker() {
-  if (!('serviceWorker' in navigator)) return;
-  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').catch(e => console.warn('Service worker tidak aktif:', e.message));
+/* ---------- mode luring ---------- */
+function siapkanLuring() {
+  const pil = $('#pilLuring');
+  onJaringan(ada => { if (pil) pil.hidden = ada; });
+
+  // minta izin penyimpanan tetap agar data tidak dibuang browser saat ruang menipis
+  mintaPenyimpananTetap();
+
+  daftarkanServiceWorker({
+    onPembaruan: terapkan => toast('Versi baru tersedia. Ketuk untuk memuat ulang.', 'warn', 8000, terapkan),
   });
 }
 

@@ -194,6 +194,17 @@ img{max-width:100%}
 .btn-xs{min-height:28px;padding:0 8px;font-size:12px;border-radius:7px;gap:4px}
 .btn-block{width:100%}
 .btn:disabled{opacity:.5;pointer-events:none}
+/* Penanda luring. Sengaja bernada tenang, bukan merah tanda bahaya:
+   aplikasi ini memang dirancang jalan penuh tanpa internet. */
+.pil-luring{
+  flex:none;display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;
+  font-size:11px;font-weight:700;letter-spacing:.02em;
+  background:var(--surface-3);color:var(--muted);border:1px solid var(--border);
+}
+.pil-luring::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--muted)}
+@media (max-width:420px){ .pil-luring{padding:3px 7px;font-size:0}
+  .pil-luring::before{width:8px;height:8px} }
+
 .icon-btn{
   width:40px;height:40px;flex:none;display:grid;place-items:center;font-size:17px;
   border:1px solid transparent;background:transparent;border-radius:10px;color:var(--text-2);
@@ -262,6 +273,9 @@ img{max-width:100%}
 .input[readonly]{background:var(--surface-3);color:var(--text-2)}
 .input.num,.num{text-align:right;font-variant-numeric:tabular-nums}
 .hint{font-size:11.5px;color:var(--muted);margin-top:4px}
+.hint.warn{color:var(--warn)}
+.kv .v.ok{color:var(--ok)}
+.kv .v.warn{color:var(--warn)}
 .err{font-size:11.5px;color:var(--bad);margin-top:4px;font-weight:600}
 .input.invalid,.select.invalid{border-color:var(--bad)}
 .form-row{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr))}
@@ -378,6 +392,9 @@ table.tbl tfoot td{padding:11px 12px;font-weight:700;background:var(--surface-2)
   box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:9px;max-width:440px;
   animation:tin .2s ease-out;pointer-events:auto;
 }
+.toast-aksi{cursor:pointer}
+.toast-aksi span:last-child{text-decoration:underline;text-underline-offset:3px}
+.toast-aksi:hover{filter:brightness(1.08)}
 html[data-theme="dark"] .toast{background:#e2e8f0;color:#0f172a}
 .toast.ok{background:var(--ok);color:#fff}
 .toast.bad{background:var(--bad);color:#fff}
