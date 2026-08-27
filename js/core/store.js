@@ -10,7 +10,7 @@ const kosong = () => ({
   // sesi: peran yang sedang aktif di perangkat ini (owner / sales / mitra)
   sesi: { peran: 'owner', salesId: '', mitraId: '', sejak: '' },
   pengaturan: {
-    namaToko: 'Toko Rokok Jaya',
+    namaToko: 'Luhung Nusantara',
     pemilik: '',
     alamat: '',
     telp: '',

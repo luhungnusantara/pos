@@ -51,7 +51,7 @@ export function isiContoh() {
   batch(() => {
     db.pengaturan = {
       ...db.pengaturan,
-      namaToko: 'Distributor Rokok Jaya Abadi',
+      namaToko: 'Luhung Nusantara',
       pemilik: 'H. Suryana',
       alamat: 'Jl. Raya Cibiru No. 45, Bandung',
       telp: '0812-3456-7890',
