@@ -197,8 +197,9 @@ sehingga aplikasi tetap bisa dipakai berhari-hari tanpa jaringan.
 
 Belum ada akun bawaan — akun pertama dibuat sendiri:
 
-1. Isi **alamat server** di layar masuk, lalu tekan **Daftarkan Toko Baru**.
-   Nomor HP dan kata sandi yang Anda isi menjadi akun **Pemilik**.
+1. Di layar masuk, tekan **"Belum punya akun? Daftarkan toko baru"**. Isi alamat
+   server, nama toko, nama pemilik, nomor HP, dan kata sandi. Nomor HP dan kata
+   sandi itulah kredensial **Pemilik** Anda.
 2. Setelah masuk, buka **Pengaturan → Akun Pengguna** untuk membuatkan akun
    Sales dan Agen. Tiap akun ditautkan ke data Sales/Mitra yang sudah ada,
    dipilih dari daftar — bukan diketik — supaya penyaringan datanya tidak

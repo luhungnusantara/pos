@@ -38,60 +38,90 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
   return new Promise(selesai => {
     const el = akar();
     document.body.classList.add('terkunci');
-    const adaServer = !!alamatServer();
 
-    el.innerHTML = `
-      <div class="gerbang-kotak">
-        <div class="gerbang-kepala">
-          <div class="brand-logo"><img src="img/mark-putih.svg" alt="" width="26" height="26"></div>
-          <div>
-            <strong>${esc(db.pengaturan.namaToko || 'POS')}</strong>
-            <div class="muted xs">Masuk untuk mulai mencatat</div>
+    // 'masuk' untuk akun yang sudah ada, 'daftar' untuk toko baru
+    let mode = 'masuk';
+
+    const gambar = () => {
+      const adaServer = !!alamatServer();
+      const daftarMode = mode === 'daftar';
+
+      el.innerHTML = `
+        <div class="gerbang-kotak">
+          <div class="gerbang-kepala">
+            <div class="brand-logo"><img src="img/mark-putih.svg" alt="" width="26" height="26"></div>
+            <div>
+              <strong>${esc(db.pengaturan.namaToko || 'POS')}</strong>
+              <div class="muted xs">${daftarMode
+                ? 'Daftarkan toko & buat akun pemilik'
+                : 'Masuk untuk mulai mencatat'}</div>
+            </div>
           </div>
-        </div>
 
-        ${sebabKedaluwarsa ? `<div class="hint warn mb12">⏳ Sesi Anda sudah berakhir.
-          Data di perangkat ini <b>tetap utuh</b> — masuk lagi untuk melanjutkan.</div>` : ''}
+          ${sebabKedaluwarsa && !daftarMode ? `<div class="hint warn mb12">⏳ Sesi Anda sudah berakhir.
+            Data di perangkat ini <b>tetap utuh</b> — masuk lagi untuk melanjutkan.</div>` : ''}
 
-        ${adaServer ? '' : `<div class="hint warn mb12">⚠️ Alamat server belum diatur.
-          Tanpa server, tidak ada yang bisa memeriksa kata sandi.</div>`}
+          ${adaServer ? '' : `<div class="field">
+            <label class="lbl">Alamat server</label>
+            <input class="input" id="gServer" type="url" inputmode="url"
+                   autocomplete="off" placeholder="https://api.contoh.id">
+            <div class="hint">Tanpa server, tidak ada yang bisa memeriksa kata sandi.</div>
+          </div>`}
 
-        <div class="field">
-          <label class="lbl">Nomor HP</label>
-          <input class="input" id="gPhone" type="tel" inputmode="tel"
-                 autocomplete="username" placeholder="628xxxxxxxxx">
-        </div>
-        <div class="field">
-          <label class="lbl">Kata sandi</label>
-          <input class="input" id="gSandi" type="password" autocomplete="current-password">
-        </div>
-        ${adaServer ? '' : `
-        <div class="field">
-          <label class="lbl">Alamat server</label>
-          <input class="input" id="gServer" type="url" inputmode="url" placeholder="https://api.contoh.id">
-        </div>`}
+          ${daftarMode ? `
+          <div class="field">
+            <label class="lbl">Nama toko / distributor</label>
+            <input class="input" id="gToko" autocomplete="organization"
+                   value="${esc(db.pengaturan.namaToko || '')}">
+          </div>
+          <div class="field">
+            <label class="lbl">Nama pemilik</label>
+            <input class="input" id="gNama" autocomplete="name"
+                   value="${esc(db.pengaturan.pemilik || '')}">
+          </div>` : ''}
 
-        <div class="err mb12" id="gGalat" hidden></div>
+          <div class="field">
+            <label class="lbl">Nomor HP</label>
+            <input class="input" id="gPhone" type="tel" inputmode="tel"
+                   autocomplete="username" placeholder="628xxxxxxxxx">
+            ${daftarMode ? '<div class="hint">Nomor ini yang dipakai untuk masuk nanti.</div>' : ''}
+          </div>
+          <div class="field">
+            <label class="lbl">Kata sandi${daftarMode ? ' (min. 6 karakter)' : ''}</label>
+            <input class="input" id="gSandi" type="password"
+                   autocomplete="${daftarMode ? 'new-password' : 'current-password'}">
+          </div>
 
-        <button class="btn btn-primary btn-block" id="gMasuk">Masuk</button>
-        <button class="btn btn-ghost btn-block mt8" id="gDaftar">Daftarkan Toko Baru</button>
+          <div class="err mb12" id="gGalat" hidden></div>
 
-        <div class="gerbang-kaki">
-          <button class="tautan" id="gLokal">Pakai tanpa server di perangkat ini</button>
-          <div class="hint mt8">Data hanya tersimpan di perangkat ini dan tidak
-            dibagikan ke siapa pun. Cocok untuk mencoba, tetapi peran tidak bisa
-            ditegakkan tanpa server.</div>
-        </div>
-      </div>`;
+          <button class="btn btn-primary btn-block" id="gKirim">${
+            daftarMode ? 'Daftarkan Toko' : 'Masuk'}</button>
+
+          <div class="gerbang-kaki">
+            <button class="tautan" id="gTukar">${daftarMode
+              ? 'Sudah punya akun? Masuk'
+              : 'Belum punya akun? Daftarkan toko baru'}</button>
+            <div class="hint mt8">${daftarMode
+              ? 'Akun pertama otomatis menjadi <b>Pemilik</b>. Akun untuk sales dan agen dibuat setelah masuk, lewat Pengaturan → Akun Pengguna.'
+              : 'Butuh jaringan untuk masuk pertama kali. Sesudah itu aplikasi tetap bisa dipakai tanpa sinyal.'}</div>
+            <button class="tautan mt12" id="gLokal">Pakai tanpa server di perangkat ini</button>
+          </div>
+        </div>`;
+
+      pasang();
+    };
 
     const galat = pesan => {
       const g = el.querySelector('#gGalat');
+      if (!g) return;
       g.textContent = pesan;
       g.hidden = !pesan;
     };
+
     const sibuk = on => {
       el.querySelectorAll('button,input').forEach(b => { b.disabled = on; });
-      el.querySelector('#gMasuk').textContent = on ? 'Memeriksa…' : 'Masuk';
+      const t = el.querySelector('#gKirim');
+      if (t) t.textContent = on ? 'Memeriksa…' : (mode === 'daftar' ? 'Daftarkan Toko' : 'Masuk');
     };
 
     const simpanServerBila = () => {
@@ -108,59 +138,55 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
       if (s?.akun) {
         terapkanPeranDariAkun(s.akun);
         setPeranTerkunci(true);
+        console.info(`masuk sebagai ${s.akun.nama} (${PERAN_TEKS[s.akun.peran] || s.akun.peran})`);
       }
       tutupGerbang();
       selesai('masuk');
     };
 
-    el.querySelector('#gMasuk').onclick = async () => {
-      const phone = el.querySelector('#gPhone').value.trim();
-      const sandi = el.querySelector('#gSandi').value;
-      if (!phone || !sandi) return galat('Nomor HP dan kata sandi wajib diisi.');
-      if (!simpanServerBila()) return;
-      galat('');
-      sibuk(true);
-      try {
-        const hasil = await masuk(phone, sandi);
-        const p = PERAN_TEKS[hasil.user?.peran] || hasil.user?.peran || '';
-        console.info(`masuk sebagai ${hasil.user?.nama} (${p})`);
-        await sukses();
-      } catch (e) {
-        sibuk(false);
-        galat(e.message || 'Gagal masuk.');
-      }
-    };
+    function pasang() {
+      el.querySelector('#gTukar').onclick = () => {
+        mode = mode === 'masuk' ? 'daftar' : 'masuk';
+        gambar();
+      };
 
-    el.querySelector('#gDaftar').onclick = async () => {
-      const phone = el.querySelector('#gPhone').value.trim();
-      const sandi = el.querySelector('#gSandi').value;
-      if (!phone || sandi.length < 6)
-        return galat('Isi nomor HP dan kata sandi minimal 6 karakter, lalu tekan Daftarkan.');
-      if (!simpanServerBila()) return;
-      const namaToko = prompt('Nama toko / distributor:', db.pengaturan.namaToko || '');
-      if (!namaToko) return;
-      const nama = prompt('Nama pemilik:', db.pengaturan.pemilik || '');
-      if (!nama) return;
-      galat('');
-      sibuk(true);
-      try {
-        await daftar({ nama_toko: namaToko, nama, phone, password: sandi });
-        await sukses();
-      } catch (e) {
-        sibuk(false);
-        galat(e.message || 'Gagal mendaftar.');
-      }
-    };
+      el.querySelector('#gLokal').onclick = () => {
+        setPeranTerkunci(false);
+        tutupGerbang();
+        selesai('lokal');
+      };
 
-    el.querySelector('#gLokal').onclick = () => {
-      setPeranTerkunci(false);
-      tutupGerbang();
-      selesai('lokal');
-    };
+      el.querySelector('#gKirim').onclick = async () => {
+        const phone = el.querySelector('#gPhone').value.trim();
+        const sandi = el.querySelector('#gSandi').value;
+        if (!phone || !sandi) return galat('Nomor HP dan kata sandi wajib diisi.');
 
-    el.querySelector('#gPhone').focus();
-    el.addEventListener('keydown', e => {
-      if (e.key === 'Enter') el.querySelector('#gMasuk').click();
-    });
+        const daftarMode = mode === 'daftar';
+        let namaToko = '', nama = '';
+        if (daftarMode) {
+          namaToko = el.querySelector('#gToko').value.trim();
+          nama = el.querySelector('#gNama').value.trim();
+          if (!namaToko || !nama) return galat('Nama toko dan nama pemilik wajib diisi.');
+          if (sandi.length < 6) return galat('Kata sandi minimal 6 karakter.');
+        }
+        if (!simpanServerBila()) return;
+
+        galat('');
+        sibuk(true);
+        try {
+          if (daftarMode) await daftar({ nama_toko: namaToko, nama, phone, password: sandi });
+          else await masuk(phone, sandi);
+          await sukses();
+        } catch (e) {
+          sibuk(false);
+          galat(e.message || (daftarMode ? 'Gagal mendaftar.' : 'Gagal masuk.'));
+        }
+      };
+
+      el.querySelector('#gPhone').focus();
+      el.onkeydown = e => { if (e.key === 'Enter') el.querySelector('#gKirim').click(); };
+    }
+
+    gambar();
   });
 }
