@@ -85,7 +85,14 @@ async function panggil(jalur, { metode = 'GET', body, token } = {}) {
   if (teks && (teks[0] === '{' || teks[0] === '[')) {
     try { isi = JSON.parse(teks); } catch { /* biarkan sebagai teks */ }
   }
-  if (!res.ok) throw new Error(isi?.error || `Server menolak (${res.status})`);
+  if (!res.ok) {
+    const e = new Error(isi?.error || `Server menolak (${res.status})`);
+    e.status = res.status;
+    // 401/403 berarti sesi tidak lagi diterima — bukan gangguan jaringan,
+    // jadi mencoba ulang tidak akan menolong sampai pengguna masuk lagi.
+    e.sesiDitolak = res.status === 401 || res.status === 403;
+    throw e;
+  }
   return isi;
 }
 
@@ -304,6 +311,10 @@ export async function jalankan({ paksa = false } = {}) {
   } catch (e) {
     await perbaruiJumlah();
     setKeadaan(KEADAAN.galat, e.message);
+    if (e.sesiDitolak) {
+      // Data yang belum tersetor tetap aman di antrean; yang hilang hanya izinnya.
+      window.dispatchEvent(new CustomEvent('pos:sesi-ditolak', { detail: e.message }));
+    }
     return false;
   } finally {
     sedangJalan = false;

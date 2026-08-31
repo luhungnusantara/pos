@@ -151,6 +151,37 @@ menyembunyikan menu.
 
 ---
 
+## Masuk dengan kredensial
+
+Bila alamat server diisi, aplikasi **terkunci sampai pengguna masuk**. Layar
+masuk tampil sebelum menu dan halaman digambar, jadi tidak ada data yang sempat
+terlihat oleh orang yang tidak berhak.
+
+| Keadaan | Perilaku |
+| --- | --- |
+| Server diatur, belum masuk | aplikasi terkunci di layar masuk |
+| Sudah masuk | peran diambil dari akun, berlaku sampai token habis (60 hari) |
+| Tidak ada sinyal | tetap terbuka memakai sesi tersimpan — kasir tidak pernah terkunci di lapangan |
+| Sesi berakhir / akses dicabut | layar masuk muncul lagi; **antrean dan data tetap utuh** |
+| Server belum diatur | tidak dikunci, kembali ke mode peran perangkat |
+
+Login penuh hanya dibutuhkan **sekali**. Setelah itu sesi disimpan di perangkat,
+sehingga aplikasi tetap bisa dipakai berhari-hari tanpa jaringan.
+
+### Yang berubah dari mode peran perangkat
+
+Setelah masuk lewat akun, **peran tidak bisa lagi diganti dari perangkat.** Ia
+berasal dari akun yang terverifikasi, dan server menolak data di luar
+wewenangnya. Pembatasan peran menjadi sungguhan, bukan sekadar menyembunyikan
+menu. Lencana di kaki sidebar berubah dari ⇄ menjadi 🔒.
+
+> ⚠️ **Yang tetap perlu dipahami.** Data tetap tersimpan di perangkat
+> (localStorage), tidak terenkripsi. Layar masuk mencegah orang lain memakai
+> aplikasi, tetapi seseorang yang menguasai perangkat dan paham peramban masih
+> bisa membaca berkas datanya langsung. Yang dijaga sungguhan adalah **data di
+> server**: tanpa kredensial yang sah, tidak ada yang bisa membaca atau mengubah
+> data toko dari perangkat lain.
+
 ## Mode peran perangkat
 
 Aplikasi punya **tiga tampilan** yang dipilih lewat tombol peran di bagian bawah menu
@@ -224,6 +255,8 @@ js/core/
   bayar.js            dialog pelunasan piutang & hutang
   periode.js          pemilih rentang tanggal
   luring.js           status jaringan, penyimpanan tetap, pembaruan aplikasi
+  sesi.js             gerbang masuk: sesi tersimpan, masa token, peran dari akun
+  gerbang.js          layar masuk yang mengunci aplikasi
   antrean.js          antrean setoran di IndexedDB (tahan tutup paksa)
   sinkron.js          setor & tarik data ke server, deteksi perubahan
   seed.js             data contoh

@@ -7,7 +7,7 @@
    bar", dan di situ strategi jaringan-dulu justru menggantung sampai time-out.
    Salinan baru diambil diam-diam untuk dipakai pada pemuatan berikutnya. */
 
-const VERSI = 'v4';
+const VERSI = 'v5';
 const CACHE = `pos-rokok-${VERSI}`;
 const KERANGKA = './index.html';
 
@@ -21,6 +21,7 @@ const ASET = [
   './js/core/router.js', './js/core/seed.js', './js/core/struk.js', './js/core/bayar.js',
   './js/core/periode.js', './js/core/peran.js', './js/core/ganti-peran.js',
   './js/core/luring.js', './js/core/sinkron.js', './js/core/antrean.js',
+  './js/core/sesi.js', './js/core/gerbang.js',
   './js/pages/dashboard.js', './js/pages/kasir.js', './js/pages/penjualan.js',
   './js/pages/konsinyasi.js', './js/pages/produk.js', './js/pages/stok.js',
   './js/pages/opname.js', './js/pages/pembelian.js', './js/pages/mitra.js',

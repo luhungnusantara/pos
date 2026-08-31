@@ -16,6 +16,13 @@ let janjiDB = null;
 export function bukaDB() {
   if (janjiDB) return janjiDB;
   janjiDB = new Promise((selesai, gagal) => {
+    // Mode privat pada sebagian peramban, atau penyimpanan yang diblokir,
+    // membuat IndexedDB tidak ada sama sekali. Ditolak dengan pesan yang jelas
+    // supaya pemanggil bisa memilih tetap berjalan tanpa antrean.
+    if (typeof indexedDB === 'undefined' || !indexedDB) {
+      gagal(new Error('IndexedDB tidak tersedia di peramban ini'));
+      return;
+    }
     const p = indexedDB.open(NAMA_DB, VERSI);
     p.onupgradeneeded = () => {
       const d = p.result;

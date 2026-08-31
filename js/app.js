@@ -8,6 +8,8 @@ import { PERAN, peranAktif, bolehBuka, namaPengguna, adalah, salesAktif } from '
 import { dialogGantiPeran } from './core/ganti-peran.js';
 import { daftarkanServiceWorker, onJaringan, mintaPenyimpananTetap } from './core/luring.js';
 import { onSinkron, jalankan, pasangPemicu, aktif as sinkronAktif, KEADAAN } from './core/sinkron.js';
+import { perluLogin, selaraskanPeran, peranTerkunci } from './core/sesi.js';
+import { bukaGerbang } from './core/gerbang.js';
 
 /* ---------- daftar menu ---------- */
 const MENU = [
@@ -129,9 +131,10 @@ function gambarPeran() {
         <span style="display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(namaPengguna())}</span>
         <span class="xs muted">${esc(p.label)}</span>
       </span>
-      <span class="muted">⇄</span>
+      <span class="muted">${peranTerkunci() ? '🔒' : '⇄'}</span>
     </button>
-    <div class="muted xs mt8">v1.0 &middot; data tersimpan di perangkat</div>`;
+    <div class="muted xs mt8">v1.0 &middot; ${peranTerkunci()
+      ? 'peran mengikuti akun' : 'data tersimpan di perangkat'}</div>`;
   kaki.querySelector('#btnPeran').onclick = dialogGantiPeran;
 }
 
@@ -178,8 +181,14 @@ async function tawarkanContoh() {
 }
 
 /* ---------- bootstrap ---------- */
-function mulai() {
+async function mulai() {
   terapkanTema();
+
+  /* Gerbang masuk dijalankan sebelum menu dan router digambar: tidak boleh ada
+     data yang sempat tampil sebelum diketahui siapa yang memegang perangkat. */
+  if (await perluLogin()) await bukaGerbang();
+  await selaraskanPeran();
+
   gambarBrand();
   gambarMenu();
 
@@ -263,6 +272,17 @@ function siapkanSinkron() {
   // service worker memberi kabar setelah menyetor antrean di latar belakang
   navigator.serviceWorker?.addEventListener('message', e => {
     if (e.data?.tipe === 'sinkron-selesai') jalankan();
+  });
+
+  /* Sesi ditolak server (kedaluwarsa atau akses dicabut). Antrean sengaja
+     dibiarkan utuh — yang hilang izinnya, bukan datanya. */
+  let sedangMintaMasuk = false;
+  window.addEventListener('pos:sesi-ditolak', async () => {
+    if (sedangMintaMasuk) return;
+    sedangMintaMasuk = true;
+    await bukaGerbang({ sebabKedaluwarsa: true });
+    sedangMintaMasuk = false;
+    location.reload();
   });
 
   pasangPemicu();

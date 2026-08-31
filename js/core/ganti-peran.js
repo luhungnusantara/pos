@@ -1,7 +1,8 @@
 /* ganti-peran.js — dialog pemilihan peran perangkat */
 import { db } from './store.js';
 import { PERAN, peranAktif, gantiPeran, pinDipasang, cocokPin, namaPengguna } from './peran.js';
-import { modal, pilihItem, sukses, gagal, badge, avatarEl } from './ui.js';
+import { peranTerkunci, sesiTersimpan } from './sesi.js';
+import { modal, pilihItem, konfirmasi, sukses, gagal, badge, avatarEl } from './ui.js';
 import { esc, num, sortBy } from './utils.js';
 import { stokKonsinyasi, totalPiutang } from './domain.js';
 
@@ -83,6 +84,10 @@ async function pilihMitra() {
 
 /* ---------- dialog utama ---------- */
 export function dialogGantiPeran() {
+  // Saat masuk lewat akun server, peran berasal dari akun yang terverifikasi.
+  // Membiarkannya diganti manual akan membatalkan seluruh gunanya login.
+  if (peranTerkunci()) return dialogAkun();
+
   const aktif = peranAktif();
   const kartu = (kunci, aksi) => {
     const p = PERAN[kunci];
@@ -125,5 +130,49 @@ export function dialogGantiPeran() {
       if (target === 'sales') return pilihSales();
       if (target === 'mitra') return pilihMitra();
     }),
+  });
+}
+
+/* ---------- kartu akun (saat masuk lewat server) ---------- */
+async function dialogAkun() {
+  const s = await sesiTersimpan();
+  const p = PERAN[peranAktif()];
+  const sisa = s?.sisaHari;
+
+  modal({
+    judul: 'Akun',
+    isi: `
+      <div class="card mb12"><div class="card-body">
+        <div class="kv"><span class="k">Masuk sebagai</span>
+          <span class="v">${p.ikon} ${esc(s?.akun?.nama || namaPengguna())}</span></div>
+        <div class="kv"><span class="k">Peran</span><span class="v">${esc(p.label)}</span></div>
+        ${s?.toko?.nama ? `<div class="kv"><span class="k">Toko</span>
+          <span class="v">${esc(s.toko.nama)}</span></div>` : ''}
+        ${s?.akun?.phone ? `<div class="kv"><span class="k">Nomor HP</span>
+          <span class="v">${esc(s.akun.phone)}</span></div>` : ''}
+        ${sisa === null || sisa === undefined ? '' : `<div class="kv"><span class="k">Sesi berakhir</span>
+          <span class="v ${sisa < 7 ? 'warn' : ''}">${Math.max(0, Math.floor(sisa))} hari lagi</span></div>`}
+      </div></div>
+      <div class="hint">🔒 Peran ditentukan oleh akun ini dan tidak bisa diganti dari
+        perangkat. Server juga menolak data di luar wewenangnya, jadi pembatasan ini
+        berlaku sungguhan — bukan sekadar menyembunyikan menu.</div>`,
+    tombol: [
+      { teks: 'Tutup', kelas: 'btn-ghost' },
+      {
+        teks: 'Keluar', kelas: 'btn-danger', aksi: async h => {
+          const ya = await konfirmasi({
+            judul: 'Keluar dari akun?', ok: 'Ya, keluar', bahaya: true,
+            pesan: `Data di perangkat ini <b>tetap utuh</b>. Yang dihapus hanya
+                    sesi dan antrean kiriman.<br><br>Anda perlu jaringan untuk masuk kembali.`,
+          });
+          if (!ya) return;
+          h.tutup();
+          const { keluar } = await import('./sinkron.js');
+          await keluar();
+          sukses('Sudah keluar');
+          setTimeout(() => location.reload(), 400);
+        },
+      },
+    ],
   });
 }
