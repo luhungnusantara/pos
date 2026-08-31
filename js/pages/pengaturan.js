@@ -1,6 +1,6 @@
 /* pages/pengaturan.js — identitas toko, tema, cadangan data */
 import { db, setPengaturan, exportDB, importDB, resetDB, kosongkanTransaksi, VERSI } from '../core/store.js';
-import { setJudul, setTopbar, setFab, formModal, konfirmasi, sukses, gagal, statTile } from '../core/ui.js';
+import { setJudul, setTopbar, setFab, formModal, konfirmasi, sukses, gagal, statTile, badge } from '../core/ui.js';
 import { segarkan } from '../core/router.js';
 import { PERAN, peranAktif, namaPengguna, pinDipasang } from '../core/peran.js';
 import { dialogGantiPeran } from '../core/ganti-peran.js';
@@ -9,7 +9,118 @@ import { esc, rp, num, unduh, todayISO } from '../core/utils.js';
 import { statusPenyimpanan, mintaPenyimpananTetap, onJaringan, onBisaDipasang,
          pasangAplikasi, versiAplikasi, periksaPembaruan, terapkanPembaruan } from '../core/luring.js';
 import { onSinkron, jalankan, masuk, daftar as daftarToko, keluar as keluarSinkron,
-         akunTersimpan, tokoTersimpan, alamatServer, KEADAAN } from '../core/sinkron.js';
+         akunTersimpan, tokoTersimpan, alamatServer, KEADAAN,
+         daftarPengguna, tambahPengguna, ubahAkses } from '../core/sinkron.js';
+
+/* Kartu kelola akun.
+
+   Endpoint-nya sudah ada di server sejak awal, tetapi tanpa layar ini pemilik
+   tidak punya cara membuatkan akun untuk sales dan agennya — dan tanpa akun,
+   pembatasan peran tidak pernah benar-benar terpakai. */
+const PERAN_AKUN = { owner: 'Pemilik', sales: 'Sales', mitra: 'Agen / Reseller' };
+
+async function gambarAkun(view) {
+  const bungkus = view.querySelector('#kartuAkunWrap');
+  const kotak = view.querySelector('#kartuAkun');
+  if (!bungkus || !kotak) return;
+
+  const saya = alamatServer() ? await akunTersimpan() : null;
+  if (saya?.peran !== 'owner') { bungkus.hidden = true; return; }
+  bungkus.hidden = false;
+  kotak.innerHTML = '<div class="hint">Memuat daftar akun…</div>';
+
+  let daftar;
+  try {
+    daftar = await daftarPengguna();
+  } catch (e) {
+    kotak.innerHTML = `<div class="hint warn">Gagal memuat: ${esc(e.message)}.
+      Daftar akun hanya bisa dibaca saat ada jaringan.</div>`;
+    return;
+  }
+
+  const baris = (daftar || []).map(u => {
+    const mati = u.nonaktif === true;
+    const ini = u._id === saya._id;
+    return `<div class="row-item">
+      <div class="avatar ${u.peran === 'sales' ? 'i' : u.peran === 'mitra' ? 'v' : ''}">
+        ${u.peran === 'owner' ? '👑' : u.peran === 'sales' ? '🧑‍💼' : '🏪'}</div>
+      <div class="ri-main">
+        <div class="ri-title">${esc(u.nama || '-')}
+          ${mati ? badge('Dicabut', 'bad') : ''}${ini ? badge('Anda', 'ok') : ''}</div>
+        <div class="ri-sub">${esc(PERAN_AKUN[u.peran] || u.peran)} · ${esc(u.phone || '')}</div>
+      </div>
+      ${ini ? '' : `<button class="btn btn-sm ${mati ? '' : 'btn-danger'}"
+        data-akses="${esc(u._id)}" data-mati="${mati ? '1' : ''}">${mati ? 'Pulihkan' : 'Cabut'}</button>`}
+    </div>`;
+  }).join('');
+
+  kotak.innerHTML = `
+    <div class="card mb12"><div class="list">${baris || '<div class="hint">Belum ada akun lain.</div>'}</div></div>
+    <button class="btn btn-primary btn-block" id="akTambah">＋ Buatkan Akun Sales / Agen</button>
+    <div class="hint mt8">Akun sales hanya bisa membaca dan menyetor data miliknya
+      sendiri — ditegakkan server, bukan sekadar disembunyikan di tampilan.
+      Mencabut akses berlaku seketika, bahkan pada perangkat yang sudah terlanjur masuk.</div>`;
+
+  kotak.querySelectorAll('[data-akses]').forEach(b => {
+    b.onclick = async () => {
+      const mati = b.dataset.mati === '1';
+      const ya = await konfirmasi({
+        judul: mati ? 'Pulihkan akses?' : 'Cabut akses?',
+        bahaya: !mati, ok: mati ? 'Ya, pulihkan' : 'Ya, cabut',
+        pesan: mati
+          ? 'Akun ini bisa masuk dan menyetor data lagi.'
+          : `Perangkat yang sudah terlanjur masuk <b>langsung ditolak</b>, tanpa
+             menunggu sesinya berakhir. Data yang sudah tersetor tidak dihapus.`,
+      });
+      if (!ya) return;
+      try {
+        await ubahAkses(b.dataset.akses, !mati);
+        sukses(mati ? 'Akses dipulihkan' : 'Akses dicabut');
+        gambarAkun(view);
+      } catch (e) { gagal(e.message); }
+    };
+  });
+
+  kotak.querySelector('#akTambah').onclick = () => formAkunBaru(view);
+}
+
+function formAkunBaru(view) {
+  /* ref_id ditautkan lewat pilihan, bukan diketik: id yang salah ketik akan
+     membuat penyaringan data diam-diam meleset tanpa pesan galat apa pun. */
+  const opsiSales = db.sales.filter(x => x.aktif !== false)
+    .map(x => ({ value: `sales:${x.id}`, label: `Sales — ${x.nama}` }));
+  const opsiMitra = db.mitra.filter(x => x.aktif !== false)
+    .map(x => ({ value: `mitra:${x.id}`, label: `${x.tipe === 'agen' ? 'Agen' : 'Reseller'} — ${x.nama}` }));
+  const opsi = [...opsiSales, ...opsiMitra];
+
+  if (!opsi.length) {
+    return gagal('Tambahkan data Sales atau Mitra terlebih dahulu, lalu buat akunnya di sini.');
+  }
+
+  formModal({
+    judul: 'Buatkan Akun',
+    field: [
+      { name: 'tautan', label: 'Untuk siapa', tipe: 'select', opsi, wajib: true, lebar: 'full',
+        hint: 'Akun akan ditautkan ke data ini — hanya datanya yang bisa dia lihat.' },
+      { name: 'nama', label: 'Nama pemegang akun', wajib: true, lebar: 'full' },
+      { name: 'phone', label: 'Nomor HP (dipakai untuk masuk)', tipe: 'tel', wajib: true, lebar: 'full',
+        hint: 'Format 628xxxxxxxxx' },
+      { name: 'password', label: 'Kata sandi (min. 6 karakter)', tipe: 'password', wajib: true, lebar: 'full' },
+    ],
+    onSimpan: async d => {
+      if (String(d.password).length < 6) { gagal('Kata sandi minimal 6 karakter'); throw new Error('pendek'); }
+      const [peran, refId] = String(d.tautan).split(':');
+      try {
+        await tambahPengguna({
+          nama: d.nama, phone: String(d.phone).trim(),
+          password: d.password, peran, refId,
+        });
+        sukses(`Akun ${d.nama} dibuat — berikan nomor HP dan sandinya kepada yang bersangkutan`);
+        gambarAkun(view);
+      } catch (e) { gagal(e.message); throw e; }
+    },
+  });
+}
 
 /* Kartu sinkronisasi. Ditulis dengan satu pesan utama: menyalakan server itu
    pilihan, bukan keharusan — tanpa server pun aplikasi tetap berfungsi penuh. */
@@ -198,6 +309,7 @@ async function gambarLuring(view) {
           : gagal('Peramban menolak. Pasang aplikasi ke layar utama lalu coba lagi.');
     gambarLuring(view);
   gambarSinkron(view);
+  gambarAkun(view);
   };
 }
 
@@ -348,6 +460,11 @@ export function render(view) {
       </div>
     </div>
 
+    <div class="card mb12" id="kartuAkunWrap" hidden>
+      <div class="card-head"><h2>👥 Akun Pengguna</h2></div>
+      <div class="card-body" id="kartuAkun"></div>
+    </div>
+
     <div class="card mb12">
       <div class="card-head"><h2>📶 Mode Luring (Offline)</h2></div>
       <div class="card-body" id="kartuLuring">
@@ -420,6 +537,7 @@ export function render(view) {
 
   gambarLuring(view);
   gambarSinkron(view);
+  gambarAkun(view);
 
   view.querySelector('#ekspor').onclick = () => {
     unduh(`cadangan-pos-${todayISO()}.json`, exportDB());

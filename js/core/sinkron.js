@@ -132,6 +132,20 @@ export async function keluar() {
 export const akunTersimpan = () => bacaKunci('akun');
 export const tokoTersimpan = () => bacaKunci('toko');
 
+/* ---------- kelola akun (hanya pemilik) ---------- */
+export const daftarPengguna = () => panggil('/pos/pengguna');
+
+export const tambahPengguna = ({ nama, phone, password, peran, refId }) =>
+  panggil('/pos/pengguna', {
+    metode: 'POST',
+    body: { nama, phone, password, peran, ref_id: refId },
+  });
+
+export const ubahAkses = (id, nonaktif) =>
+  panggil(`/pos/pengguna/${encodeURIComponent(id)}/akses`, {
+    metode: 'POST', body: { nonaktif },
+  });
+
 /* ---------- deteksi perubahan ----------
    domain.js menulis langsung ke array db di belasan tempat, jadi menyadap
    fungsi CRUD saja akan melewatkan justru transaksi yang paling penting.

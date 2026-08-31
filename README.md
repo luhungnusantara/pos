@@ -193,6 +193,22 @@ terlihat oleh orang yang tidak berhak.
 Login penuh hanya dibutuhkan **sekali**. Setelah itu sesi disimpan di perangkat,
 sehingga aplikasi tetap bisa dipakai berhari-hari tanpa jaringan.
 
+### Membuat akun
+
+Belum ada akun bawaan — akun pertama dibuat sendiri:
+
+1. Isi **alamat server** di layar masuk, lalu tekan **Daftarkan Toko Baru**.
+   Nomor HP dan kata sandi yang Anda isi menjadi akun **Pemilik**.
+2. Setelah masuk, buka **Pengaturan → Akun Pengguna** untuk membuatkan akun
+   Sales dan Agen. Tiap akun ditautkan ke data Sales/Mitra yang sudah ada,
+   dipilih dari daftar — bukan diketik — supaya penyaringan datanya tidak
+   diam-diam meleset karena id salah ketik.
+3. Berikan nomor HP dan kata sandinya kepada yang bersangkutan.
+
+Akses bisa **dicabut dan dipulihkan** kapan saja dari kartu yang sama.
+Pencabutan berlaku seketika, bahkan pada perangkat yang sudah terlanjur masuk —
+berguna saat HP sales hilang.
+
 ### Yang berubah dari mode peran perangkat
 
 Setelah masuk lewat akun, **peran tidak bisa lagi diganti dari perangkat.** Ia
