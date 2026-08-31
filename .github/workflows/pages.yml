@@ -1,0 +1,83 @@
+# .github/workflows/pages.yml
+#
+# Menerbitkan aplikasi POS ke GitHub Pages (https://luhung.id/pos/).
+#
+# Dua hal yang dikerjakan dan tidak bisa dilakukan mode legacy:
+#   1. menstempel VERSI di sw.js dari commit, sehingga tawaran
+#      "Versi baru tersedia" tidak pernah gagal muncul karena lupa dinaikkan
+#   2. memastikan versi baru benar-benar tersaji sebelum deploy dinyatakan
+#      berhasil — pelajaran dari backend, yang sempat empat kali hijau
+#      berturut-turut tanpa satu pun berlaku
+
+name: Terbitkan POS ke GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false # jangan potong deploy yang sedang berjalan
+
+jobs:
+  terbitkan:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Ambil kode
+        uses: actions/checkout@v4
+
+      - name: Stempel versi ke sw.js
+        run: |
+          VERSI="${GITHUB_SHA::7}"
+          sed -i "s/^const VERSI = '[^']*';/const VERSI = '$VERSI';/" sw.js
+          grep -q "const VERSI = '$VERSI';" sw.js || {
+            echo "Gagal menstempel versi — pola 'const VERSI' di sw.js berubah?"
+            exit 1
+          }
+          echo "VERSI=$VERSI" >> "$GITHUB_ENV"
+          grep -m1 "const VERSI" sw.js
+
+      - name: Susun berkas situs
+        run: |
+          mkdir -p _site
+          # Sengaja menyalin semuanya kecuali berkas kerja, bukan mendaftar
+          # berkas satu per satu: daftar manual akan diam-diam melewatkan aset
+          # baru yang lupa ditambahkan.
+          rsync -a --exclude='.git' --exclude='.github' --exclude='_site' ./ _site/
+          test -f _site/index.html && test -f _site/sw.js
+
+      - name: Siapkan Pages
+        uses: actions/configure-pages@v5
+
+      - name: Unggah artefak
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Terbitkan
+        id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Pastikan versi baru benar-benar tersaji
+        run: |
+          for i in $(seq 1 30); do
+            hidup=$(curl -s -m 10 https://luhung.id/pos/sw.js \
+                    | sed -n "s/^const VERSI = '\([^']*\)';/\1/p")
+            echo "percobaan $i: situs menyajikan '${hidup:-tidak diketahui}'"
+            if [ "$hidup" = "$VERSI" ]; then
+              echo "versi $VERSI sudah tersaji"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Deploy dilaporkan berhasil, tetapi situs masih menyajikan versi lama."
+          exit 1
