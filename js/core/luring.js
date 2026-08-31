@@ -100,6 +100,9 @@ export async function pasangAplikasi() {
 /* ---------- service worker & pembaruan ---------- */
 let menunggu = null;   // service worker versi baru yang siap dipakai
 
+/** selang pemeriksaan pembaruan saat aplikasi dibiarkan terbuka */
+const JEDA_PERIKSA = 30 * 60 * 1000;
+
 /** muat ulang halaman memakai versi baru yang sudah terunduh */
 export function terapkanPembaruan() {
   if (!menunggu) return location.reload();
@@ -135,12 +138,56 @@ export function daftarkanServiceWorker({ onPembaruan } = {}) {
           if (baru.state === 'installed') tandai(reg);
         });
       });
-      // periksa pembaruan tiap kali aplikasi kembali dibuka
-      document.addEventListener('visibilitychange', () => {
-        if (!document.hidden && daring()) reg.update().catch(() => {});
+      /* Kapan pembaruan diperiksa.
+
+         Satu pemicu saja tidak cukup: kasir sering membiarkan aplikasi
+         terbuka seharian, dan dalam keadaan itu peramban tidak pernah
+         memeriksa ulang dengan sendirinya. Tiga pemicu di bawah menutup
+         ketiga pola pemakaian yang sebenarnya terjadi di lapangan. */
+      const periksa = () => { if (daring()) reg.update().catch(() => {}); };
+
+      document.addEventListener('visibilitychange', () => {   // aplikasi dibuka lagi
+        if (!document.hidden) periksa();
       });
+      window.addEventListener('online', periksa);             // sinyal baru pulih
+      setInterval(periksa, JEDA_PERIKSA);                     // dibiarkan terbuka lama
     } catch (e) {
       console.warn('Service worker tidak aktif:', e.message);
     }
   });
+}
+
+/**
+ * Versi aplikasi yang sedang dilayani service worker.
+ *
+ * Diambil dari service worker, bukan ditulis di halaman, supaya angkanya
+ * menggambarkan berkas yang benar-benar dipakai — bukan yang seharusnya.
+ * @returns {Promise<string|null>}
+ */
+export function versiAplikasi() {
+  return new Promise(selesai => {
+    const ctrl = navigator.serviceWorker?.controller;
+    if (!ctrl) return selesai(null);
+    const kanal = new MessageChannel();
+    const habis = setTimeout(() => selesai(null), 1500);
+    kanal.port1.onmessage = e => { clearTimeout(habis); selesai(e.data?.versi || null); };
+    try {
+      ctrl.postMessage({ tipe: 'versi' }, [kanal.port2]);
+    } catch {
+      clearTimeout(habis);
+      selesai(null);
+    }
+  });
+}
+
+/** paksa pemeriksaan pembaruan sekarang juga */
+export async function periksaPembaruan() {
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (!reg) return false;
+    await reg.update();
+    return !!reg.waiting;
+  } catch {
+    return false;
+  }
 }

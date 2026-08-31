@@ -6,8 +6,8 @@ import { PERAN, peranAktif, namaPengguna, pinDipasang } from '../core/peran.js';
 import { dialogGantiPeran } from '../core/ganti-peran.js';
 import { terapkanTema } from '../app.js';
 import { esc, rp, num, unduh, todayISO } from '../core/utils.js';
-import { statusPenyimpanan, mintaPenyimpananTetap, onJaringan,
-         onBisaDipasang, pasangAplikasi } from '../core/luring.js';
+import { statusPenyimpanan, mintaPenyimpananTetap, onJaringan, onBisaDipasang,
+         pasangAplikasi, versiAplikasi, periksaPembaruan, terapkanPembaruan } from '../core/luring.js';
 import { onSinkron, jalankan, masuk, daftar as daftarToko, keluar as keluarSinkron,
          akunTersimpan, tokoTersimpan, alamatServer, KEADAAN } from '../core/sinkron.js';
 
@@ -147,6 +147,8 @@ async function gambarLuring(view) {
       : ['', '— Tidak diketahui', 'Peramban ini tidak melaporkan status penyimpanan.'];
 
   kotak.innerHTML = `
+    <div class="kv"><span class="k">Versi aplikasi</span>
+      <span class="v" id="lrVersi">memeriksa…</span></div>
     <div class="kv"><span class="k">Jaringan</span>
       <span class="v" id="lrJaringan">—</span></div>
     <div class="kv"><span class="k">Dipasang di layar utama</span>
@@ -162,6 +164,7 @@ async function gambarLuring(view) {
     <div class="btn-row mt12">
       ${s.tetap === false ? '<button class="btn grow" id="lrKunci">🔒 Kunci Penyimpanan</button>' : ''}
       <button class="btn btn-primary grow" id="lrPasang" hidden>📲 Pasang ke Layar Utama</button>
+      <button class="btn grow" id="lrPembaruan">🔄 Periksa Pembaruan</button>
     </div>
     <div class="hint mt8">Seluruh fitur — kasir, konsinyasi, stok, laporan — berjalan
       tanpa internet karena data diolah di perangkat ini, bukan di server.</div>`;
@@ -175,6 +178,17 @@ async function gambarLuring(view) {
   onBisaDipasang(bisa => { if (tPasang) tPasang.hidden = !bisa; });
   if (tPasang) tPasang.onclick = async () => {
     (await pasangAplikasi()) ? sukses('Aplikasi dipasang ke layar utama') : null;
+  };
+
+  versiAplikasi().then(v => {
+    const el = kotak.querySelector('#lrVersi');
+    if (el) el.textContent = v || 'tidak diketahui (service worker belum aktif)';
+  });
+
+  kotak.querySelector('#lrPembaruan').onclick = async () => {
+    const ada = await periksaPembaruan();
+    ada ? sukses('Versi baru tersedia — memuat ulang…') : sukses('Sudah versi terbaru');
+    if (ada) setTimeout(terapkanPembaruan, 600);
   };
 
   const tKunci = kotak.querySelector('#lrKunci');

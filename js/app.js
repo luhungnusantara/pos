@@ -6,7 +6,7 @@ import { $, esc } from './core/utils.js';
 import { komisiTertunda } from './core/domain.js';
 import { PERAN, peranAktif, bolehBuka, namaPengguna, adalah, salesAktif } from './core/peran.js';
 import { dialogGantiPeran } from './core/ganti-peran.js';
-import { daftarkanServiceWorker, onJaringan, mintaPenyimpananTetap } from './core/luring.js';
+import { daftarkanServiceWorker, onJaringan, mintaPenyimpananTetap, versiAplikasi } from './core/luring.js';
 import { onSinkron, jalankan, pasangPemicu, aktif as sinkronAktif, KEADAAN } from './core/sinkron.js';
 import { perluLogin, selaraskanPeran, peranTerkunci } from './core/sesi.js';
 import { bukaGerbang } from './core/gerbang.js';
@@ -133,8 +133,13 @@ function gambarPeran() {
       </span>
       <span class="muted">${peranTerkunci() ? '🔒' : '⇄'}</span>
     </button>
-    <div class="muted xs mt8">v1.0 &middot; ${peranTerkunci()
+    <div class="muted xs mt8" id="kakiVersi">${peranTerkunci()
       ? 'peran mengikuti akun' : 'data tersimpan di perangkat'}</div>`;
+  // versi diambil dari service worker: yang benar-benar dipakai, bukan yang ditulis di berkas
+  versiAplikasi().then(v => {
+    const el = kaki.querySelector('#kakiVersi');
+    if (el && v) el.textContent = `${v} · ${el.textContent}`;
+  });
   kaki.querySelector('#btnPeran').onclick = dialogGantiPeran;
 }
 

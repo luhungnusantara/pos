@@ -7,7 +7,12 @@
    bar", dan di situ strategi jaringan-dulu justru menggantung sampai time-out.
    Salinan baru diambil diam-diam untuk dipakai pada pemuatan berikutnya. */
 
-const VERSI = 'v5';
+/* Penanda versi aplikasi.
+   WAJIB dinaikkan setiap kali ada perubahan yang perlu sampai ke pengguna.
+   Peramban membandingkan isi berkas sw.js apa adanya: bila berkas ini tidak
+   berubah, tidak ada service worker baru yang dipasang dan tawaran "Versi baru
+   tersedia" tidak akan pernah muncul. */
+const VERSI = 'v6';
 const CACHE = `pos-rokok-${VERSI}`;
 const KERANGKA = './index.html';
 
@@ -48,7 +53,13 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('message', e => {
   if (e.data?.tipe === 'lewati-tunggu') self.skipWaiting();
-  if (e.data?.tipe === 'versi') e.source?.postMessage({ tipe: 'versi', versi: VERSI });
+  if (e.data?.tipe === 'versi') {
+    const balas = { tipe: 'versi', versi: VERSI };
+    // balas lewat kanal khusus bila halaman menyediakannya, agar jawabannya
+    // pasti sampai ke penanya dan bukan ke seluruh klien
+    if (e.ports?.[0]) e.ports[0].postMessage(balas);
+    else e.source?.postMessage(balas);
+  }
 });
 
 /** ambil dari jaringan lalu simpan; null bila gagal (dipakai tanpa menunggu) */

@@ -95,6 +95,31 @@ laporan — karena semua data diolah di perangkat, bukan di server.
 | Sinyal satu bar | Halaman tetap tampil seketika — aset disajikan dari cache lebih dulu, tidak menunggu jaringan |
 | Kembali online | Versi baru diambil diam-diam; muncul tawaran *"Versi baru tersedia"* yang bisa diketuk |
 
+### Bagaimana pembaruan sampai ke pengguna
+
+Aplikasi disajikan dari cache, jadi versi baru tidak otomatis terlihat begitu
+berkas di server berganti. Alurnya:
+
+1. `sw.js` diperiksa ulang ke server pada **tiga** pemicu: aplikasi dibuka lagi,
+   sinyal baru pulih, dan tiap 30 menit selama aplikasi dibiarkan terbuka.
+   Ketiganya diperlukan — kasir sering membiarkan aplikasi terbuka seharian, dan
+   dalam keadaan itu peramban tidak pernah memeriksa dengan sendirinya.
+2. Bila isi `sw.js` berbeda, versi baru diunduh diam-diam di latar belakang.
+3. Muncul tawaran **"Versi baru tersedia. Ketuk untuk memuat ulang."**
+4. Versi baru baru dipakai setelah pengguna setuju — supaya berkas lama dan baru
+   tidak tercampur di tengah transaksi yang sedang diketik.
+
+Versi yang benar-benar sedang dipakai bisa dilihat di kaki sidebar dan di
+**Pengaturan → Mode Luring**, lengkap dengan tombol **Periksa Pembaruan**.
+Angkanya diambil dari service worker, bukan ditulis di halaman, jadi ia
+menggambarkan berkas yang nyata dipakai — bukan yang seharusnya.
+
+> ⚠️ **Naikkan `VERSI` di `sw.js` setiap kali menerbitkan perubahan.** Peramban
+> membandingkan isi `sw.js` apa adanya. Bila berkas itu tidak berubah, tidak ada
+> service worker baru yang dipasang dan tawaran pembaruan tidak akan pernah
+> muncul. Perubahan tetap sampai lewat penyegaran latar belakang, tetapi
+> tertunda satu kali pemuatan dan tanpa pemberitahuan.
+
 ### Menjaga data tidak terhapus browser
 
 Karena seluruh data ada di perangkat, yang justru perlu dijaga bukan koneksinya
