@@ -134,6 +134,7 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
     };
 
     const sukses = async () => {
+      setPengaturan({ tanpaServer: false });
       const s = await sesiTersimpan();
       if (s?.akun) {
         terapkanPeranDariAkun(s.akun);
@@ -151,6 +152,9 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
       };
 
       el.querySelector('#gLokal').onclick = () => {
+        // Disimpan agar tidak ditanyakan lagi setiap kali aplikasi dibuka.
+        // Mengisi alamat server di Pengaturan akan membatalkan pilihan ini.
+        setPengaturan({ tanpaServer: true });
         setPeranTerkunci(false);
         tutupGerbang();
         selesai('lokal');

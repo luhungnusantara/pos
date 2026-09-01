@@ -10,7 +10,7 @@
    sampai tokennya kedaluwarsa (60 hari), sehingga kasir di lapangan tidak
    pernah terkunci hanya karena tidak ada jaringan. */
 
-import { setSesi } from './store.js';
+import { db, setSesi } from './store.js';
 import { bacaToken, akunTersimpan, tokoTersimpan, aktif as serverDiatur } from './sinkron.js';
 
 export { serverDiatur };
@@ -86,16 +86,24 @@ export async function sesiSah() {
 }
 
 /**
- * Apakah aplikasi harus dikunci sampai pengguna masuk.
+ * Apakah layar masuk harus ditampilkan sebelum aplikasi terbuka.
  *
- * Hanya berlaku bila alamat server sudah diisi. Tanpa server tidak ada
- * pihak yang bisa memverifikasi kredensial, sehingga layar login hanya akan
- * menjadi gembok pura-pura — dan aplikasi memang dirancang tetap berguna
- * sebagai catatan satu perangkat.
+ * Urutannya penting:
+ *
+ * 1. Sudah ada sesi sah         -> langsung masuk.
+ * 2. Alamat server sudah diisi  -> wajib masuk.
+ * 3. Pengguna pernah memilih
+ *    "pakai tanpa server"       -> hormati pilihannya, jangan tanya lagi.
+ * 4. Perangkat masih baru       -> tampilkan.
+ *
+ * Butir keempat mudah terlewat dan sempat salah di sini: layar masuk adalah
+ * satu-satunya tempat alamat server bisa diisi, jadi melewatinya ketika server
+ * belum diatur membuat pengguna baru tidak punya jalan masuk sama sekali.
  */
 export async function perluLogin() {
-  if (!serverDiatur()) return false;
-  return (await sesiSah()) === null;
+  if (await sesiSah()) return false;
+  if (serverDiatur()) return true;
+  return db.pengaturan.tanpaServer !== true;
 }
 
 /** peran perangkat mengikuti akun yang masuk, bukan pilihan manual */
