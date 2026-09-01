@@ -1,5 +1,9 @@
 /* ui.js — komponen antarmuka: toast, modal, form, pemilih item */
 import { esc, toNum, toInt, num, $, $$, cocok, debounce, initial } from './utils.js';
+import { db } from './store.js';
+
+/** nama yang dipakai pada judul tab; jatuh ke nama merek bila belum diisi */
+const namaMerek = () => db.pengaturan?.namaToko || 'Luhung Nusantara';
 
 /* =========================================================
    TOAST
@@ -387,7 +391,10 @@ export function setJudul(judul, sub = '') {
   const s = document.getElementById('pageSub');
   s.innerHTML = sub;
   s.hidden = !sub;
-  document.title = `${judul} — POS Rokok`;
+  // Judul tab memakai nama toko yang sedang dibuka, bukan nama tetap: akun
+  // pusat berpindah-pindah cabang, dan tab yang menyebut cabangnya jauh lebih
+  // menolong daripada nama aplikasi yang sama di semua tab.
+  document.title = `${judul} — ${namaMerek()}`;
 }
 
 /** aksi:[{teks,ikon,kelas,onClick}] ditampilkan di kanan atas */

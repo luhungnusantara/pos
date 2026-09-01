@@ -1,4 +1,4 @@
-# POS Rokok — Agen & Reseller
+# POS Luhung Nusantara
 
 Aplikasi Point of Sales untuk **penjualan rokok ke agen dan reseller**, mulai dari stok masuk,
 stok opname, **konsinyasi (barang titipan)**, penjualan, kas, piutang/hutang, sampai

@@ -453,7 +453,7 @@ export function render(view) {
     <div class="card">
       <div class="card-head"><h2>ℹ️ Tentang Aplikasi</h2></div>
       <div class="card-body">
-        <div class="kv"><span class="k">Aplikasi</span><span class="v">POS Rokok — Agen &amp; Reseller</span></div>
+        <div class="kv"><span class="k">Aplikasi</span><span class="v">POS Luhung Nusantara</span></div>
         <div class="kv"><span class="k">Teknologi</span><span class="v">HTML · CSS · JavaScript Module (tanpa framework)</span></div>
         <div class="kv"><span class="k">Penyimpanan</span><span class="v">localStorage (offline)</span></div>
         <div class="kv"><span class="k">Versi struktur data</span><span class="v">${VERSI}</span></div>

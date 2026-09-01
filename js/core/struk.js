@@ -10,7 +10,7 @@ export function htmlStruk(jual) {
   return `
   <div class="receipt" id="areaStruk">
     <img class="r-logo" src="img/logo.svg" alt="">
-    <div class="r-c r-b" style="font-size:14px">${esc(p.namaToko || 'POS ROKOK')}</div>
+    <div class="r-c r-b" style="font-size:14px">${esc(p.namaToko || 'LUHUNG NUSANTARA')}</div>
     ${p.alamat ? `<div class="r-c">${esc(p.alamat)}</div>` : ''}
     ${p.telp ? `<div class="r-c">Telp: ${esc(p.telp)}</div>` : ''}
     <div class="r-line"></div>
@@ -62,7 +62,7 @@ export function teksStruk(jual) {
     const pr = get('produk', i.produkId);
     return `• ${pr?.nama || '-'}\n  ${num(i.qty)} × ${rp(i.harga)} = ${rp(toNum(i.qty) * toNum(i.harga))}`;
   }).join('\n');
-  return `*${p.namaToko || 'POS ROKOK'}*
+  return `*${p.namaToko || 'LUHUNG NUSANTARA'}*
 Nota: ${jual.noRef}
 Tanggal: ${fmtTgl(jual.tanggal)}
 Pelanggan: ${jual.mitraNama}

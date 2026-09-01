@@ -161,8 +161,8 @@ export function terapkanTema(tema) {
 
 /* ---------- identitas toko ---------- */
 function gambarBrand() {
-  $('#brandName').textContent = db.pengaturan.namaToko || 'POS Rokok';
-  $('#brandSub').textContent = db.pengaturan.alamat || 'Agen & Reseller';
+  $('#brandName').textContent = db.pengaturan.namaToko || 'Luhung Nusantara';
+  $('#brandSub').textContent = db.pengaturan.alamat || 'POS Distribusi';
 }
 
 /* ---------- data contoh untuk pengguna baru ---------- */

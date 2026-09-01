@@ -1,7 +1,7 @@
 {
-  "name": "POS Rokok — Agen & Reseller",
-  "short_name": "POS Rokok",
-  "description": "Aplikasi kasir, stok opname, konsinyasi, kas, dan komisi sales untuk penjualan rokok ke agen dan reseller.",
+  "name": "POS Luhung Nusantara",
+  "short_name": "Luhung",
+  "description": "POS Luhung Nusantara: kasir, stok opname, konsinyasi, kas, dan komisi sales untuk penjualan ke agen dan reseller.",
   "start_url": "./index.html#/dashboard",
   "scope": "./",
   "display": "standalone",
