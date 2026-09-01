@@ -7,7 +7,7 @@ import { setJudul, setTopbar, setFab, kosongState, statTile, badge } from '../co
 import { tampilkanStruk } from '../core/struk.js';
 import { pergi } from '../core/router.js';
 import {
-  adalah, isOwner, salesAktif, mitraAktif, filterPenjualan, filterMitra, filterKonsinyasi,
+  adalah, bolehKelola, salesAktif, mitraAktif, filterPenjualan, filterMitra, filterKonsinyasi,
 } from '../core/peran.js';
 import {
   esc, rp, rpShort, num, toNum, sum, sortBy, fmtTgl, fmtTglPendek, fmtJam, todayISO, awalBulan, akhirBulan, selisihHari,
@@ -105,7 +105,7 @@ const PINTASAN_SALES = [
 ];
 
 function dashboardKerja(view) {
-  const owner = isOwner();
+  const owner = bolehKelola();
   const sales = salesAktif();
   const hari = todayISO();
 

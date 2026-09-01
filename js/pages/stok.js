@@ -4,7 +4,7 @@ import { stokKonsinyasi, nilaiPersediaan, produkMenipis, TIPE_MUTASI, rincianKon
 import { setJudul, setTopbar, setFab, kosongState, statTile, badge, sukses, gagal } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
-import { isOwner, bolehLihatModal } from '../core/peran.js';
+import { bolehKelola, bolehLihatModal } from '../core/peran.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, unduh, toCSV,
 } from '../core/utils.js';
@@ -23,9 +23,9 @@ function halamanRingkas(view) {
     : `${db.produk.length} produk terdaftar`);
   setTopbar([
     { teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: eksporStok },
-    ...(isOwner() ? [{ teks: 'Opname', ikon: '📋', onClick: () => pergi('opname/baru') }] : []),
+    ...(bolehKelola() ? [{ teks: 'Opname', ikon: '📋', onClick: () => pergi('opname/baru') }] : []),
   ]);
-  setFab(isOwner() ? { ikon: '📥', teks: 'Stok masuk', onClick: () => pergi('pembelian/baru') } : null);
+  setFab(bolehKelola() ? { ikon: '📥', teks: 'Stok masuk', onClick: () => pergi('pembelian/baru') } : null);
 
   view.innerHTML = `
     <div class="grid g4 mb12">
@@ -40,7 +40,7 @@ function halamanRingkas(view) {
     ${menipis.length ? `
       <div class="card mb12" style="border-color:var(--warn)">
         <div class="card-head"><h2>⚠️ Perlu Segera Restok</h2>
-          ${isOwner() ? '<a class="btn btn-sm btn-soft" href="#/pembelian/baru">📥 Buat Pembelian</a>' : ''}</div>
+          ${bolehKelola() ? '<a class="btn btn-sm btn-soft" href="#/pembelian/baru">📥 Buat Pembelian</a>' : ''}</div>
         <div class="list">
           ${menipis.slice(0, 6).map(p => `<div class="row-item" data-id="${p.id}">
             <div class="avatar w">${esc(p.kode.slice(0, 3))}</div>

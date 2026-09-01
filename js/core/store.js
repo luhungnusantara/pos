@@ -8,7 +8,8 @@ export const VERSI = 1;
 const kosong = () => ({
   versi: VERSI,
   // sesi: peran yang sedang aktif di perangkat ini (owner / sales / mitra)
-  sesi: { peran: 'owner', salesId: '', mitraId: '', sejak: '' },
+  // cabangId hanya dipakai akun pusat: cabang mana yang sedang dibuka.
+  sesi: { peran: 'owner', salesId: '', mitraId: '', cabangId: '', cabangNama: '', namaPusat: '', sejak: '' },
   pengaturan: {
     namaToko: 'Luhung Nusantara',
     pemilik: '',

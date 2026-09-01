@@ -8,7 +8,7 @@ import { tampilkanStruk, bagikanStruk } from '../core/struk.js';
 import { modalBayarPiutang } from '../core/bayar.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
-import { isOwner, bolehLihatModal, bolehTransaksi, filterPenjualan } from '../core/peran.js';
+import { bolehKelola, bolehLihatModal, bolehTransaksi, filterPenjualan } from '../core/peran.js';
 import { kunciTertunda, onSinkron } from '../core/sinkron.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, unduh, toCSV, todayISO,
@@ -78,7 +78,7 @@ function detail(j) {
         <div class="divider"></div>
         <div class="kv"><span class="k">HPP</span><span class="v">${rp(j.hpp)}</span></div>
         <div class="kv"><span class="k">Laba kotor</span><span class="v pos">${rp(j.laba)}</span></div>` : ''}
-        ${kom && (isOwner() || kom.salesId === j.salesId) ? `<div class="kv"><span class="k">Komisi ${esc(sales?.nama || '')}</span>
+        ${kom && (bolehKelola() || kom.salesId === j.salesId) ? `<div class="kv"><span class="k">Komisi ${esc(sales?.nama || '')}</span>
           <span class="v">${rp(kom.nilai)} ${badge(kom.status === 'dibayar' ? 'dibayar' : 'pending', kom.status === 'dibayar' ? 'ok' : 'warn')}</span></div>` : ''}
       </div></div>
 
@@ -106,7 +106,7 @@ function menuLain(j, indukModal) {
       <button class="row-item" data-a="bagikan"><span class="ico">📤</span><div class="ri-main"><div class="ri-title">Bagikan / salin nota</div></div></button>
       <button class="row-item" data-a="cetak"><span class="ico">🖨️</span><div class="ri-main"><div class="ri-title">Cetak nota</div></div></button>
       ${j.konsinyasiId ? `<button class="row-item" data-a="kons"><span class="ico">🤝</span><div class="ri-main"><div class="ri-title">Lihat konsinyasi asal</div></div></button>` : ''}
-      ${isOwner() ? `<button class="row-item" data-a="batal"><span class="ico">⛔</span><div class="ri-main">
+      ${bolehKelola() ? `<button class="row-item" data-a="batal"><span class="ico">⛔</span><div class="ri-main">
         <div class="ri-title" style="color:var(--bad)">Batalkan transaksi</div>
         <div class="ri-sub">Stok, kas, dan komisi dikembalikan</div></div></button>` : ''}
     </div>`,

@@ -4,6 +4,7 @@ import { bolehBuka, PERAN, peranAktif } from './peran.js';
 
 const rute = {
   dashboard: () => import('../pages/dashboard.js'),
+  pusat: () => import('../pages/pusat.js'),
   kasir: () => import('../pages/kasir.js'),
   penjualan: () => import('../pages/penjualan.js'),
   konsinyasi: () => import('../pages/konsinyasi.js'),

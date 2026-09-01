@@ -27,7 +27,7 @@ const ASET = [
   './js/core/periode.js', './js/core/peran.js', './js/core/ganti-peran.js',
   './js/core/luring.js', './js/core/sinkron.js', './js/core/antrean.js',
   './js/core/sesi.js', './js/core/gerbang.js',
-  './js/pages/dashboard.js', './js/pages/kasir.js', './js/pages/penjualan.js',
+  './js/pages/dashboard.js', './js/pages/pusat.js', './js/pages/kasir.js', './js/pages/penjualan.js',
   './js/pages/konsinyasi.js', './js/pages/produk.js', './js/pages/stok.js',
   './js/pages/opname.js', './js/pages/pembelian.js', './js/pages/mitra.js',
   './js/pages/sales.js', './js/pages/komisi.js', './js/pages/kas.js',

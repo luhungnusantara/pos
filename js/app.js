@@ -16,6 +16,7 @@ const MENU = [
   {
     grup: 'Utama', item: [
       { id: 'dashboard', teks: 'Dashboard', ikon: '📊' },
+      { id: 'pusat', teks: 'Cabang', ikon: '🏛️' },
       { id: 'kasir', teks: 'Penjualan Baru', ikon: '🧾' },
     ],
   },

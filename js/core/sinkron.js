@@ -5,7 +5,7 @@
    dirancang agar kegagalan jaringan tidak pernah menghalangi pencatatan —
    yang gagal terkirim hanya tinggal di antrean sampai sinyal kembali ada. */
 
-import { db, save } from './store.js';
+import { db, save, setSesi } from './store.js';
 import { nowISO, uid } from './utils.js';
 import { daring } from './luring.js';
 import {
@@ -62,7 +62,48 @@ export const ALAMAT_SERVER = 'https://adoobi.alwaysdata.net';
 export const alamatServer = () => ALAMAT_SERVER;
 
 export const bacaToken = () => bacaKunci('token');
-export const bacaKursor = async () => (await bacaKunci('kursor')) || 0;
+
+/* ---------- cabang yang sedang dibuka ----------
+   Hanya akun pusat yang berpindah-pindah cabang. Untuk akun cabang, nilainya
+   kosong dan server memakai toko akun itu sendiri. */
+export const cabangAktif = () => {
+  const v = db.sesi?.cabangId || '';
+  return /^0+$/.test(v) ? '' : v;   // ObjectID nol bukan cabang
+};
+
+/**
+ * Akun pusat yang belum memilih cabang.
+ *
+ * Dalam keadaan ini tidak ada cabang yang bisa disebut, sehingga menyetor
+ * apa pun akan ditolak server. Mengantrekannya justru berbahaya: antrean tidak
+ * akan pernah bisa kosong, dan penjagaan "setor dulu sebelum pindah cabang"
+ * akan mengunci pusat selamanya di layar pemilih cabang.
+ */
+export const perluPilihCabang = () => db.sesi?.peran === 'pusat' && !cabangAktif();
+
+/** kosongkan seluruh data cabang di perangkat ini */
+async function kosongkanDataLokal() {
+  const { kosongkanTransaksi } = await import('./store.js');
+  sedangGabung = true;
+  try {
+    kosongkanTransaksi();
+    db.produk.length = 0;
+    db.mitra.length = 0;
+    db.sales.length = 0;
+    save(true);
+  } finally {
+    sedangGabung = false;
+  }
+  await tulisBayangan({});
+  await kosongkanAntrean();
+  await perbaruiJumlah();
+}
+
+/* Kursor disimpan PER CABANG. Satu kursor bersama akan membuat perpindahan
+   cabang menganggap data cabang baru sudah pernah ditarik, sehingga sebagian
+   transaksinya tidak akan pernah muncul. */
+const kunciKursor = () => `kursor:${cabangAktif() || 'sendiri'}`;
+export const bacaKursor = async () => (await bacaKunci(kunciKursor())) || 0;
 
 /** id perangkat, dipakai server untuk menandai asal setoran */
 async function idPerangkat() {
@@ -104,7 +145,8 @@ export async function masuk(phone, password) {
   await simpanKunci('token', hasil.token);
   await simpanKunci('akun', hasil.user);
   await simpanKunci('toko', hasil.toko);
-  await tandaiSeluruhnyaBaru();   // setoran pertama: kirim semua yang sudah ada
+  await simpanKunci('pusat', hasil.pusat);
+  await sesudahMasuk(hasil);
   return hasil;
 }
 
@@ -116,7 +158,8 @@ export async function daftar({ nama_toko, nama, phone, password }) {
   await simpanKunci('token', hasil.token);
   await simpanKunci('akun', hasil.user);
   await simpanKunci('toko', hasil.toko);
-  await tandaiSeluruhnyaBaru();
+  await simpanKunci('pusat', hasil.pusat);
+  await sesudahMasuk(hasil);
   return hasil;
 }
 
@@ -124,23 +167,47 @@ export async function keluar() {
   await hapusKunci('token');
   await hapusKunci('akun');
   await hapusKunci('toko');
-  await hapusKunci('kursor');
+  await hapusKunci('pusat');
+  await hapusKunci(kunciKursor());
   await kosongkanAntrean();
   await tulisBayangan({});
   await perbaruiJumlah();
   setKeadaan(KEADAAN.mati);
 }
 
+/* Akun pusat masuk tanpa cabang, jadi data di perangkat belum menjadi milik
+   siapa pun — dibersihkan, bukan diantrekan. Akun cabang sebaliknya: isi
+   perangkat memang milik tokonya, jadi disetor seluruhnya. */
+async function sesudahMasuk(hasil) {
+  if (hasil?.user?.peran === 'pusat') {
+    setSesi({ cabangId: '', cabangNama: '' });
+    await kosongkanDataLokal();
+    return;
+  }
+  await tandaiSeluruhnyaBaru();
+}
+
 export const akunTersimpan = () => bacaKunci('akun');
 export const tokoTersimpan = () => bacaKunci('toko');
+export const pusatTersimpan = () => bacaKunci('pusat');
+
+/* ---------- kelola cabang (hanya pusat) ---------- */
+export const daftarCabang = () => panggil('/pos/pusat/cabang');
+
+export const tambahCabang = ({ namaToko, nama, phone, password }) =>
+  panggil('/pos/pusat/cabang', {
+    metode: 'POST',
+    body: { nama_toko: namaToko, nama, phone, password },
+  });
 
 /* ---------- kelola akun (hanya pemilik) ---------- */
-export const daftarPengguna = () => panggil('/pos/pengguna');
+export const daftarPengguna = toko =>
+  panggil(`/pos/pengguna${toko ? `?toko=${encodeURIComponent(toko)}` : ''}`);
 
 export const tambahPengguna = ({ nama, phone, password, peran, refId }) =>
   panggil('/pos/pengguna', {
     metode: 'POST',
-    body: { nama, phone, password, peran, ref_id: refId },
+    body: { nama, phone, password, peran, ref_id: refId, toko_id: cabangAktif() },
   });
 
 export const ubahAkses = (id, nonaktif) =>
@@ -168,7 +235,7 @@ function sidik(obj) {
 let sedangGabung = false;   // cegah data tarikan ikut terantre balik
 
 export async function periksaPerubahan() {
-  if (sedangGabung) return 0;
+  if (sedangGabung || perluPilihCabang()) return 0;
   const lama = (await bacaBayangan()) || {};
   const baru = {};
   const perubahan = [];
@@ -233,6 +300,7 @@ export async function dorong() {
     metode: 'POST',
     body: {
       perangkat: await idPerangkat(),
+      toko_id: cabangAktif(),
       rekaman: antrean.map(a => ({
         koleksi: a.koleksi, id: a.id, data: a.data,
         waktu_lokal: a.waktu_lokal, diubah: a.diubah, dihapus: a.dihapus,
@@ -252,12 +320,14 @@ export async function tarik() {
   let kursor = await bacaKursor();
   let masuk = 0;
   for (let putaran = 0; putaran < 20; putaran++) {
-    const hasil = await panggil(`/pos/sinkron/ambil?sejak=${kursor}`);
+    const cab = cabangAktif();
+    const hasil = await panggil(
+      `/pos/sinkron/ambil?sejak=${kursor}${cab ? `&toko=${encodeURIComponent(cab)}` : ''}`);
     if (!hasil.rekaman?.length) break;
     gabungkan(hasil.rekaman);
     masuk += hasil.rekaman.length;
     kursor = hasil.kursor;
-    await simpanKunci('kursor', kursor);
+    await simpanKunci(kunciKursor(), kursor);
     if (!hasil.lagi) break;
   }
   return masuk;
@@ -303,6 +373,7 @@ async function periksaPerubahanDiam() {
  * sedang tidak ada sinyal, fungsi ini diam saja tanpa melempar galat.
  */
 export async function jalankan({ paksa = false } = {}) {
+  if (perluPilihCabang()) { setKeadaan(KEADAAN.mati); return false; }
   if (sedangJalan && !paksa) return false;
   if (!daring()) {
     await perbaruiJumlah();
@@ -344,6 +415,49 @@ export async function kunciTertunda() {
   } catch {
     return new Set();
   }
+}
+
+/**
+ * Pindah ke cabang lain (khusus akun pusat).
+ *
+ * Database lokal hanya memuat satu cabang, jadi berpindah berarti menggantinya
+ * seluruhnya. Dua penjagaan wajib sebelum itu:
+ *
+ * 1. Antrean harus kosong. Rekaman di antrean tidak membawa identitas cabang —
+ *    yang dipakai adalah cabang yang sedang aktif saat disetor. Berpindah
+ *    dengan antrean terisi akan mengirim transaksi cabang lama ke cabang baru.
+ * 2. Harus ada jaringan, karena isi cabang baru diambil dari server.
+ *
+ * @returns {Promise<{ok: boolean, pesan?: string}>}
+ */
+export async function gantiCabang(tokoId, nama = '') {
+  if (!tokoId) return { ok: false, pesan: 'Cabang tidak dikenal' };
+  if (tokoId === cabangAktif()) return { ok: true };
+
+  if (!daring()) return { ok: false, pesan: 'Perlu jaringan untuk berpindah cabang' };
+
+  // Bila belum ada cabang yang dibuka, isi perangkat belum menjadi milik cabang
+  // mana pun — tidak ada yang perlu disetor lebih dulu.
+  if (!perluPilihCabang()) {
+    await periksaPerubahan();
+    if (await jumlahTertunda()) {
+      const berhasil = await jalankan({ paksa: true });
+      if (!berhasil || (await jumlahTertunda())) {
+        return {
+          ok: false,
+          pesan: 'Masih ada catatan yang belum tersetor. Sinkronkan dulu agar tidak masuk ke cabang yang keliru.',
+        };
+      }
+    }
+  }
+
+  await kosongkanDataLokal();   // bersihkan jejak cabang lama
+
+  setSesi({ cabangId: tokoId, cabangNama: nama });
+  await simpanKunci(`kursor:${tokoId}`, 0);
+
+  const berhasil = await jalankan({ paksa: true });
+  return berhasil ? { ok: true } : { ok: false, pesan: 'Gagal menarik data cabang' };
 }
 
 /* ---------- pemicu otomatis ---------- */

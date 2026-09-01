@@ -228,6 +228,30 @@ menu. Lencana di kaki sidebar berubah dari ⇄ menjadi 🔒.
 > server**: tanpa kredensial yang sah, tidak ada yang bisa membaca atau mengubah
 > data toko dari perangkat lain.
 
+## Pusat & cabang
+
+Akun **pusat** menaungi banyak **cabang/distributor**. Menu **Cabang** berisi
+daftar cabang, tombol membuka cabang baru beserta akun pemiliknya, dan pemilih
+cabang aktif.
+
+Database di perangkat hanya memuat **satu cabang**, jadi memilih cabang berarti
+mengganti seluruh isinya. Setelah dipilih, seluruh aplikasi bekerja persis
+seperti pemilik cabang itu — kasir, stok, laporan, semuanya.
+
+Dua penjagaan sebelum berpindah:
+
+1. **Antrean harus kosong.** Rekaman dalam antrean tidak membawa identitas
+   cabang; yang dipakai adalah cabang aktif saat disetor. Berpindah dengan
+   antrean terisi akan mengirim transaksi cabang lama ke cabang baru.
+2. **Harus ada jaringan**, karena isi cabang baru ditarik dari server.
+
+Kursor sinkronisasi disimpan **per cabang**. Satu kursor bersama akan membuat
+cabang yang baru dibuka dianggap sudah pernah ditarik, sehingga sebagian
+transaksinya tidak akan pernah muncul.
+
+Data cabang yang ditinggalkan **tidak hilang** — ia tetap di server dan ditarik
+kembali saat cabangnya dibuka lagi.
+
 ## Mode peran perangkat
 
 Aplikasi punya **tiga tampilan** yang dipilih lewat tombol peran di bagian bawah menu

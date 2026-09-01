@@ -11,7 +11,7 @@
    pernah terkunci hanya karena tidak ada jaringan. */
 
 import { setSesi } from './store.js';
-import { bacaToken, akunTersimpan, tokoTersimpan } from './sinkron.js';
+import { bacaToken, akunTersimpan, tokoTersimpan, pusatTersimpan } from './sinkron.js';
 
 /* ---------- membaca token PASETO v4.public ----------
    Hanya untuk keperluan tampilan: mengetahui kapan sesi habis agar bisa
@@ -65,6 +65,7 @@ export async function sesiTersimpan() {
       token,
       akun,
       toko: await tokoTersimpan(),
+      pusat: await pusatTersimpan(),
       sisaHari: sisa === null ? null : sisa / 86400000,
     };
   } catch (e) {
@@ -96,11 +97,18 @@ export async function perluLogin() {
 }
 
 /** peran perangkat mengikuti akun yang masuk, bukan pilihan manual */
-export function terapkanPeranDariAkun(akun) {
+/* ObjectID nol bukan id yang sah, tetapi truthy di JavaScript. Sempat lolos
+   dan membuat akun pusat dianggap sudah memilih cabang, sehingga terkunci
+   tidak bisa berpindah ke cabang mana pun. */
+const idSah = v => !!v && !/^0+$/.test(String(v));
+
+export function terapkanPeranDariAkun(akun, toko = null, pusat = null) {
   if (!akun?.peran) return null;
   const patch = { peran: akun.peran, salesId: '', mitraId: '' };
   if (akun.peran === 'sales') patch.salesId = akun.ref_id || '';
   if (akun.peran === 'mitra') patch.mitraId = akun.ref_id || '';
+  if (akun.peran === 'pusat' && pusat?.nama) patch.namaPusat = pusat.nama;
+  if (idSah(toko?._id)) { patch.cabangId = toko._id; patch.cabangNama = toko.nama || ''; }
   return setSesi(patch);
 }
 
@@ -116,7 +124,7 @@ export const setPeranTerkunci = v => { terkunci = !!v; };
 export async function selaraskanPeran() {
   const s = await sesiSah();
   if (!s) { setPeranTerkunci(false); return null; }
-  terapkanPeranDariAkun(s.akun);
+  terapkanPeranDariAkun(s.akun, s.toko, s.pusat);
   setPeranTerkunci(true);
   return s;
 }
