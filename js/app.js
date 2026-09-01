@@ -7,7 +7,7 @@ import { komisiTertunda } from './core/domain.js';
 import { PERAN, peranAktif, bolehBuka, namaPengguna, adalah, salesAktif } from './core/peran.js';
 import { dialogGantiPeran } from './core/ganti-peran.js';
 import { daftarkanServiceWorker, onJaringan, mintaPenyimpananTetap, versiAplikasi } from './core/luring.js';
-import { onSinkron, jalankan, pasangPemicu, aktif as sinkronAktif, KEADAAN } from './core/sinkron.js';
+import { onSinkron, jalankan, pasangPemicu, KEADAAN } from './core/sinkron.js';
 import { perluLogin, selaraskanPeran, peranTerkunci } from './core/sesi.js';
 import { bukaGerbang } from './core/gerbang.js';
 
@@ -254,7 +254,6 @@ const TAMPILAN_SINKRON = {
 };
 
 function siapkanSinkron() {
-  if (!sinkronAktif()) return;   // server belum diatur — aplikasi tetap jalan lokal
   const pil = $('#pilSinkron');
 
   onSinkron(({ keadaan, tertunda, pesan }) => {

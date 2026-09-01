@@ -8,9 +8,8 @@ import { terapkanTema } from '../app.js';
 import { esc, rp, num, unduh, todayISO } from '../core/utils.js';
 import { statusPenyimpanan, mintaPenyimpananTetap, onJaringan, onBisaDipasang,
          pasangAplikasi, versiAplikasi, periksaPembaruan, terapkanPembaruan } from '../core/luring.js';
-import { onSinkron, jalankan, masuk, daftar as daftarToko, keluar as keluarSinkron,
-         akunTersimpan, tokoTersimpan, alamatServer, KEADAAN,
-         daftarPengguna, tambahPengguna, ubahAkses } from '../core/sinkron.js';
+import { onSinkron, jalankan, keluar as keluarSinkron, akunTersimpan, tokoTersimpan,
+         ALAMAT_SERVER, KEADAAN, daftarPengguna, tambahPengguna, ubahAkses } from '../core/sinkron.js';
 
 /* Kartu kelola akun.
 
@@ -24,7 +23,7 @@ async function gambarAkun(view) {
   const kotak = view.querySelector('#kartuAkun');
   if (!bungkus || !kotak) return;
 
-  const saya = alamatServer() ? await akunTersimpan() : null;
+  const saya = await akunTersimpan();
   if (saya?.peran !== 'owner') { bungkus.hidden = true; return; }
   bungkus.hidden = false;
   kotak.innerHTML = '<div class="hint">Memuat daftar akun…</div>';
@@ -127,20 +126,15 @@ function formAkunBaru(view) {
 async function gambarSinkron(view) {
   const kotak = view.querySelector('#kartuSinkron');
   if (!kotak) return;
-  const alamat = alamatServer();
-  const akun = alamat ? await akunTersimpan() : null;
-  const toko = alamat ? await tokoTersimpan() : null;
+  const akun = await akunTersimpan();
+  const toko = await tokoTersimpan();
 
   const PERAN_TEKS = { owner: 'Pemilik', sales: 'Sales', mitra: 'Agen / Reseller' };
 
   kotak.innerHTML = `
-    <div class="field">
-      <label class="lbl">Alamat server</label>
-      <input class="input" id="snAlamat" type="url" inputmode="url" autocomplete="off"
-             placeholder="https://api.contoh.id" value="${esc(alamat)}">
-      <div class="hint">Kosongkan bila hanya dipakai di satu perangkat.</div>
-    </div>
-    ${!alamat ? '' : akun ? `
+    <div class="kv"><span class="k">Server</span>
+      <span class="v" style="font-size:12px">${esc(ALAMAT_SERVER.replace(/^https?:\/\//, ''))}</span></div>
+    ${akun ? `
       <div class="kv"><span class="k">Masuk sebagai</span>
         <span class="v">${esc(akun.nama || '-')} · ${esc(PERAN_TEKS[akun.peran] || akun.peran || '')}</span></div>
       <div class="kv"><span class="k">Toko</span>
@@ -150,22 +144,10 @@ async function gambarSinkron(view) {
         <button class="btn btn-primary grow" id="snSekarang">🔄 Sinkronkan Sekarang</button>
         <button class="btn grow" id="snKeluar">Keluar</button>
       </div>` : `
-      <div class="btn-row mt12">
-        <button class="btn btn-primary grow" id="snMasuk">🔑 Masuk</button>
-        <button class="btn grow" id="snDaftar">Daftarkan Toko Baru</button>
-      </div>`}
+      <div class="hint warn mt12">Belum masuk. Muat ulang halaman untuk membuka layar masuk.</div>`}
     <div class="hint mt12">Data selalu dicatat di perangkat lebih dulu, lalu disetor
       ke server saat ada sinyal. <b>Tidak ada transaksi yang hilang</b> kalau jaringan
       mati di tengah jalan.</div>`;
-
-  const simpanAlamat = () => {
-    const nilai = view.querySelector('#snAlamat').value.trim().replace(/\/+$/, '');
-    if (nilai === alamatServer()) return;
-    setPengaturan({ server: nilai });
-    sukses(nilai ? 'Alamat server disimpan' : 'Sinkronisasi dimatikan');
-    gambarSinkron(view);
-  };
-  view.querySelector('#snAlamat').addEventListener('change', simpanAlamat);
 
   if (akun) {
     onSinkron(({ keadaan, tertunda, pesan }) => {
@@ -194,51 +176,7 @@ async function gambarSinkron(view) {
       sukses('Sudah keluar');
       gambarSinkron(view);
     };
-  } else if (alamat) {
-    kotak.querySelector('#snMasuk').onclick = () => formMasuk(view);
-    kotak.querySelector('#snDaftar').onclick = () => formDaftarToko(view);
   }
-}
-
-function formMasuk(view) {
-  formModal({
-    judul: 'Masuk ke Server',
-    field: [
-      { name: 'phone', label: 'Nomor HP', wajib: true, lebar: 'full', placeholder: '628xxxxxxxxx' },
-      { name: 'password', label: 'Password', tipe: 'password', wajib: true, lebar: 'full' },
-    ],
-    onSimpan: async d => {
-      try {
-        const hasil = await masuk(d.phone.trim(), d.password);
-        sukses(`Masuk sebagai ${hasil.user?.nama || d.phone}`);
-        gambarSinkron(view);
-        jalankan({ paksa: true });
-      } catch (e) { gagal(e.message); throw e; }
-    },
-  });
-}
-
-function formDaftarToko(view) {
-  formModal({
-    judul: 'Daftarkan Toko Baru',
-    field: [
-      { name: 'nama_toko', label: 'Nama Toko / Distributor', wajib: true, lebar: 'full' },
-      { name: 'nama', label: 'Nama Pemilik', wajib: true, lebar: 'full' },
-      { name: 'phone', label: 'Nomor HP', wajib: true, lebar: 'full', placeholder: '628xxxxxxxxx' },
-      { name: 'password', label: 'Password (min. 6 karakter)', tipe: 'password', wajib: true, lebar: 'full' },
-    ],
-    onSimpan: async d => {
-      try {
-        await daftarToko({
-          nama_toko: d.nama_toko, nama: d.nama,
-          phone: d.phone.trim(), password: d.password,
-        });
-        sukses('Toko terdaftar. Data di perangkat ini akan disetor ke server.');
-        gambarSinkron(view);
-        jalankan({ paksa: true });
-      } catch (e) { gagal(e.message); throw e; }
-    },
-  });
 }
 
 const mb = b => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`);

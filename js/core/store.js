@@ -20,8 +20,6 @@ const kosong = () => ({
     tempoDefault: 14,
     peringatanStok: true,
     pinOwner: '',           // bila diisi, kembali ke peran Pemilik butuh PIN
-    server: '',             // alamat API sinkronisasi; kosong = hanya perangkat ini
-    tanpaServer: false,     // pengguna sengaja memilih tanpa server; jangan tanya lagi
   },
   produk: [],
   mitra: [],       // agen & reseller

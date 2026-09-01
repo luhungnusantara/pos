@@ -10,10 +10,8 @@
    sampai tokennya kedaluwarsa (60 hari), sehingga kasir di lapangan tidak
    pernah terkunci hanya karena tidak ada jaringan. */
 
-import { db, setSesi } from './store.js';
-import { bacaToken, akunTersimpan, tokoTersimpan, aktif as serverDiatur } from './sinkron.js';
-
-export { serverDiatur };
+import { setSesi } from './store.js';
+import { bacaToken, akunTersimpan, tokoTersimpan } from './sinkron.js';
 
 /* ---------- membaca token PASETO v4.public ----------
    Hanya untuk keperluan tampilan: mengetahui kapan sesi habis agar bisa
@@ -88,22 +86,13 @@ export async function sesiSah() {
 /**
  * Apakah layar masuk harus ditampilkan sebelum aplikasi terbuka.
  *
- * Urutannya penting:
- *
- * 1. Sudah ada sesi sah         -> langsung masuk.
- * 2. Alamat server sudah diisi  -> wajib masuk.
- * 3. Pengguna pernah memilih
- *    "pakai tanpa server"       -> hormati pilihannya, jangan tanya lagi.
- * 4. Perangkat masih baru       -> tampilkan.
- *
- * Butir keempat mudah terlewat dan sempat salah di sini: layar masuk adalah
- * satu-satunya tempat alamat server bisa diisi, jadi melewatinya ketika server
- * belum diatur membuat pengguna baru tidak punya jalan masuk sama sekali.
+ * Jawabannya tunggal: selama belum ada sesi yang sah, aplikasi terkunci.
+ * Tidak ada jalan pintas. Pintu darurat apa pun di layar ini akan membatalkan
+ * seluruh gunanya mengunci aplikasi, karena siapa pun yang memegang perangkat
+ * tinggal memakainya untuk mendapat akses penuh.
  */
 export async function perluLogin() {
-  if (await sesiSah()) return false;
-  if (serverDiatur()) return true;
-  return db.pengaturan.tanpaServer !== true;
+  return (await sesiSah()) === null;
 }
 
 /** peran perangkat mengikuti akun yang masuk, bukan pilihan manual */

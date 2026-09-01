@@ -54,9 +54,12 @@ function setKeadaan(k, pesan = '') {
   siarkan();
 }
 
-/* ---------- pengaturan sambungan ---------- */
-export const alamatServer = () => String(db.pengaturan.server || '').replace(/\/+$/, '');
-export const aktif = () => !!alamatServer();
+/* ---------- sambungan ----------
+   Hanya ada satu server. Ditulis sebagai konstanta, bukan setelan, supaya
+   tidak ada perangkat yang bisa diarahkan ke server lain — dan supaya tidak
+   ada seorang pun yang perlu mengetik URL hanya untuk bisa masuk. */
+export const ALAMAT_SERVER = 'https://adoobi.alwaysdata.net';
+export const alamatServer = () => ALAMAT_SERVER;
 
 export const bacaToken = () => bacaKunci('token');
 export const bacaKursor = async () => (await bacaKunci('kursor')) || 0;
@@ -69,8 +72,7 @@ async function idPerangkat() {
 }
 
 async function panggil(jalur, { metode = 'GET', body, token } = {}) {
-  const alamat = alamatServer();
-  if (!alamat) throw new Error('Alamat server belum diatur');
+  const alamat = ALAMAT_SERVER;
   const kepala = { 'Content-Type': 'application/json' };
   const t = token ?? (await bacaToken());
   if (t) kepala.Login = t;
@@ -126,7 +128,7 @@ export async function keluar() {
   await kosongkanAntrean();
   await tulisBayangan({});
   await perbaruiJumlah();
-  setKeadaan(aktif() ? KEADAAN.siap : KEADAAN.mati);
+  setKeadaan(KEADAAN.mati);
 }
 
 export const akunTersimpan = () => bacaKunci('akun');
@@ -166,7 +168,7 @@ function sidik(obj) {
 let sedangGabung = false;   // cegah data tarikan ikut terantre balik
 
 export async function periksaPerubahan() {
-  if (!aktif() || sedangGabung) return 0;
+  if (sedangGabung) return 0;
   const lama = (await bacaBayangan()) || {};
   const baru = {};
   const perubahan = [];
@@ -301,7 +303,6 @@ async function periksaPerubahanDiam() {
  * sedang tidak ada sinyal, fungsi ini diam saja tanpa melempar galat.
  */
 export async function jalankan({ paksa = false } = {}) {
-  if (!aktif()) { setKeadaan(KEADAAN.mati); return false; }
   if (sedangJalan && !paksa) return false;
   if (!daring()) {
     await perbaruiJumlah();
@@ -315,7 +316,7 @@ export async function jalankan({ paksa = false } = {}) {
   try {
     // service worker tidak bisa membaca localStorage, jadi alamat server
     // dititipkan di IndexedDB untuk dipakai saat Background Sync
-    await simpanKunci('server', alamatServer());
+    await simpanKunci('server', ALAMAT_SERVER);
     await periksaPerubahan();
     await dorong();
     await tarik();

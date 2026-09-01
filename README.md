@@ -188,11 +188,14 @@ terlihat oleh orang yang tidak berhak.
 | Sudah masuk | peran diambil dari akun, berlaku sampai token habis (60 hari) |
 | Tidak ada sinyal | tetap terbuka memakai sesi tersimpan — kasir tidak pernah terkunci di lapangan |
 | Sesi berakhir / akses dicabut | layar masuk muncul lagi; **antrean dan data tetap utuh** |
-| Server belum diatur, perangkat baru | layar masuk tetap tampil — di situlah alamat server diisi |
-| Pengguna memilih "pakai tanpa server" | tidak ditanya lagi; kembali ke mode peran perangkat |
+| Belum pernah masuk | terkunci — tidak ada jalan pintas |
 
 Login penuh hanya dibutuhkan **sekali**. Setelah itu sesi disimpan di perangkat,
 sehingga aplikasi tetap bisa dipakai berhari-hari tanpa jaringan.
+
+Alamat server ditulis sebagai konstanta di `js/core/sinkron.js`, bukan setelan.
+Hanya ada satu backend, jadi tidak ada kolom URL untuk diisi siapa pun — dan
+tidak ada perangkat yang bisa diarahkan ke server lain.
 
 ### Membuat akun
 

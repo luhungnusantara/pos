@@ -4,9 +4,9 @@
    pengalihan halaman: router dan menu tidak boleh sempat menggambar data
    sebelum diketahui siapa yang memegang perangkat. */
 
-import { db, setPengaturan } from './store.js';
+import { db } from './store.js';
 import { esc } from './utils.js';
-import { masuk, daftar, alamatServer } from './sinkron.js';
+import { masuk, daftar } from './sinkron.js';
 import { sesiTersimpan, terapkanPeranDariAkun, setPeranTerkunci } from './sesi.js';
 
 const PERAN_TEKS = { owner: 'Pemilik', sales: 'Sales', mitra: 'Agen / Reseller' };
@@ -28,11 +28,12 @@ export function tutupGerbang() {
 }
 
 /**
- * Tampilkan layar masuk. Promise selesai ketika pengguna berhasil masuk,
- * atau memilih memakai aplikasi tanpa server.
+ * Tampilkan layar masuk. Promise selesai hanya ketika pengguna berhasil masuk.
+ *
+ * Tidak ada jalan keluar lain dari layar ini — itu memang maksudnya.
  *
  * @param {{sebabKedaluwarsa?: boolean}} opsi
- * @returns {Promise<'masuk'|'lokal'>}
+ * @returns {Promise<'masuk'>}
  */
 export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
   return new Promise(selesai => {
@@ -43,7 +44,6 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
     let mode = 'masuk';
 
     const gambar = () => {
-      const adaServer = !!alamatServer();
       const daftarMode = mode === 'daftar';
 
       el.innerHTML = `
@@ -60,13 +60,6 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
 
           ${sebabKedaluwarsa && !daftarMode ? `<div class="hint warn mb12">⏳ Sesi Anda sudah berakhir.
             Data di perangkat ini <b>tetap utuh</b> — masuk lagi untuk melanjutkan.</div>` : ''}
-
-          ${adaServer ? '' : `<div class="field">
-            <label class="lbl">Alamat server</label>
-            <input class="input" id="gServer" type="url" inputmode="url"
-                   autocomplete="off" placeholder="https://api.contoh.id">
-            <div class="hint">Tanpa server, tidak ada yang bisa memeriksa kata sandi.</div>
-          </div>`}
 
           ${daftarMode ? `
           <div class="field">
@@ -104,7 +97,6 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
             <div class="hint mt8">${daftarMode
               ? 'Akun pertama otomatis menjadi <b>Pemilik</b>. Akun untuk sales dan agen dibuat setelah masuk, lewat Pengaturan → Akun Pengguna.'
               : 'Butuh jaringan untuk masuk pertama kali. Sesudah itu aplikasi tetap bisa dipakai tanpa sinyal.'}</div>
-            <button class="tautan mt12" id="gLokal">Pakai tanpa server di perangkat ini</button>
           </div>
         </div>`;
 
@@ -124,17 +116,7 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
       if (t) t.textContent = on ? 'Memeriksa…' : (mode === 'daftar' ? 'Daftarkan Toko' : 'Masuk');
     };
 
-    const simpanServerBila = () => {
-      const s = el.querySelector('#gServer');
-      if (!s) return true;
-      const nilai = s.value.trim().replace(/\/+$/, '');
-      if (!nilai) { galat('Alamat server wajib diisi.'); return false; }
-      setPengaturan({ server: nilai });
-      return true;
-    };
-
     const sukses = async () => {
-      setPengaturan({ tanpaServer: false });
       const s = await sesiTersimpan();
       if (s?.akun) {
         terapkanPeranDariAkun(s.akun);
@@ -151,15 +133,6 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
         gambar();
       };
 
-      el.querySelector('#gLokal').onclick = () => {
-        // Disimpan agar tidak ditanyakan lagi setiap kali aplikasi dibuka.
-        // Mengisi alamat server di Pengaturan akan membatalkan pilihan ini.
-        setPengaturan({ tanpaServer: true });
-        setPeranTerkunci(false);
-        tutupGerbang();
-        selesai('lokal');
-      };
-
       el.querySelector('#gKirim').onclick = async () => {
         const phone = el.querySelector('#gPhone').value.trim();
         const sandi = el.querySelector('#gSandi').value;
@@ -173,7 +146,6 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
           if (!namaToko || !nama) return galat('Nama toko dan nama pemilik wajib diisi.');
           if (sandi.length < 6) return galat('Kata sandi minimal 6 karakter.');
         }
-        if (!simpanServerBila()) return;
 
         galat('');
         sibuk(true);
