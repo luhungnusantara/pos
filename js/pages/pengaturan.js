@@ -99,7 +99,7 @@ function formAkunBaru(view) {
 
   formModal({
     judul: 'Buatkan Akun',
-    field: [
+    fields: [
       { name: 'tautan', label: 'Untuk siapa', tipe: 'select', opsi, wajib: true, lebar: 'full',
         hint: 'Akun akan ditautkan ke data ini — hanya datanya yang bisa dia lihat.' },
       { name: 'nama', label: 'Nama pemegang akun', wajib: true, lebar: 'full' },
@@ -107,17 +107,23 @@ function formAkunBaru(view) {
         hint: 'Format 628xxxxxxxxx' },
       { name: 'password', label: 'Kata sandi (min. 6 karakter)', tipe: 'password', wajib: true, lebar: 'full' },
     ],
-    onSimpan: async d => {
-      if (String(d.password).length < 6) { gagal('Kata sandi minimal 6 karakter'); throw new Error('pendek'); }
+    /* formModal hanya menahan modal bila onSimpan mengembalikan false — Promise
+       dari fungsi async akan langsung menutupnya, sehingga isian hilang bila
+       server menolak. Jadi modal ditahan, lalu ditutup sendiri setelah berhasil. */
+    onSimpan: (d, h) => {
+      if (String(d.password).length < 6) { gagal('Kata sandi minimal 6 karakter'); return false; }
       const [peran, refId] = String(d.tautan).split(':');
-      try {
-        await tambahPengguna({
-          nama: d.nama, phone: String(d.phone).trim(),
-          password: d.password, peran, refId,
-        });
+      const tombol = h.foot.querySelector('.btn-primary');
+      tombol.disabled = true;
+      tambahPengguna({
+        nama: d.nama, phone: String(d.phone).trim(),
+        password: d.password, peran, refId,
+      }).then(() => {
+        h.tutup();
         sukses(`Akun ${d.nama} dibuat — berikan nomor HP dan sandinya kepada yang bersangkutan`);
         gambarAkun(view);
-      } catch (e) { gagal(e.message); throw e; }
+      }).catch(e => { tombol.disabled = false; gagal(e.message); });
+      return false;
     },
   });
 }

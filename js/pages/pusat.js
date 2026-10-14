@@ -113,23 +113,27 @@ async function bukaCabang(id, nama, ulang) {
 function formCabang(ulang) {
   formModal({
     judul: 'Buka Cabang Baru',
-    field: [
+    fields: [
       { name: 'namaToko', label: 'Nama cabang / distributor', wajib: true, lebar: 'full' },
       { name: 'nama', label: 'Nama pemilik cabang', wajib: true, lebar: 'full' },
       { name: 'phone', label: 'Nomor HP pemilik', tipe: 'tel', wajib: true, lebar: 'full',
         hint: 'Dipakai untuk masuk. Format 628xxxxxxxxx' },
       { name: 'password', label: 'Kata sandi (min. 6 karakter)', tipe: 'password', wajib: true, lebar: 'full' },
     ],
-    onSimpan: async d => {
-      if (String(d.password).length < 6) { gagal('Kata sandi minimal 6 karakter'); throw new Error('pendek'); }
-      try {
-        await tambahCabang({
-          namaToko: d.namaToko, nama: d.nama,
-          phone: String(d.phone).trim(), password: d.password,
-        });
+    // modal ditahan sampai server menjawab, agar isian tidak hilang bila ditolak
+    onSimpan: (d, h) => {
+      if (String(d.password).length < 6) { gagal('Kata sandi minimal 6 karakter'); return false; }
+      const tombol = h.foot.querySelector('.btn-primary');
+      tombol.disabled = true;
+      tambahCabang({
+        namaToko: d.namaToko, nama: d.nama,
+        phone: String(d.phone).trim(), password: d.password,
+      }).then(() => {
+        h.tutup();
         sukses(`Cabang ${d.namaToko} dibuka — berikan nomor HP dan sandinya kepada pemiliknya`);
         ulang?.();
-      } catch (e) { gagal(e.message); throw e; }
+      }).catch(e => { tombol.disabled = false; gagal(e.message); });
+      return false;
     },
   });
 }
