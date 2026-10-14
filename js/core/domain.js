@@ -424,6 +424,31 @@ export function tutupKonsinyasi(id, returSisa = true) {
   });
 }
 
+/** setoran yang masih berlaku dari satu titipan */
+export const setoranKonsinyasi = id =>
+  db.penjualan.filter(j => j.konsinyasiId === id && j.status !== 'batal');
+
+/**
+ * Batalkan titipan yang salah catat: sisa barang kembali ke gudang dan titipan
+ * tidak lagi dihitung di mana pun. Titipan yang sudah punya setoran ditolak —
+ * nota setorannya dibatalkan dulu dari Riwayat Penjualan.
+ */
+export function batalkanKonsinyasi(id) {
+  const k = get('konsinyasi', id);
+  if (!k || k.status === 'batal' || setoranKonsinyasi(id).length) return false;
+  return batch(() => {
+    k.items.forEach(it => {
+      const sisa = round2(toNum(it.qty) - toNum(it.terjual) - toNum(it.retur));
+      if (sisa > 0) catatMutasi({
+        produkId: it.produkId, tanggal: todayISO(), tipe: 'batal', qty: sisa,
+        ref: k.noRef, ket: 'Pembatalan titipan',
+      });
+    });
+    k.status = 'batal';
+    return true;
+  });
+}
+
 /* =========================================================
    8. TRANSAKSI — PENJUALAN
    ========================================================= */

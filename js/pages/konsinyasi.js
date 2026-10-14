@@ -2,7 +2,7 @@
 import { db, get } from '../core/store.js';
 import {
   simpanKonsinyasi, laporKonsinyasi, tutupKonsinyasi, tambahTitipan,
-  hargaUntuk, stokGudang, stokKonsinyasi,
+  batalkanKonsinyasi, setoranKonsinyasi, hargaUntuk, stokGudang, stokKonsinyasi,
 } from '../core/domain.js';
 import {
   setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, ingat,
@@ -10,7 +10,7 @@ import {
 } from '../core/ui.js';
 import { tampilkanStruk } from '../core/struk.js';
 import { segarkan, pergi } from '../core/router.js';
-import { bolehTransaksi, bolehLihatKonsinyasi, filterKonsinyasi, filterMitra, adalah } from '../core/peran.js';
+import { bolehTransaksi, bolehKelola, bolehLihatKonsinyasi, filterKonsinyasi, filterMitra, adalah } from '../core/peran.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy,
   todayISO, tambahHari, selisihHari, round2,
@@ -22,6 +22,8 @@ const sisaItem = it => round2(toNum(it.qty) - toNum(it.terjual) - toNum(it.retur
 const sisaKons = k => round2(sum(k.items, sisaItem));
 const nilaiSisa = k => round2(sum(k.items, it => sisaItem(it) * toNum(it.harga)));
 const nilaiTerjual = k => round2(sum(k.items, it => toNum(it.terjual) * toNum(it.harga)));
+const badgeStatus = k => k.status === 'batal' ? badge('Dibatalkan', 'bad')
+  : k.status === 'selesai' ? badge('Selesai', 'ok') : badge('Berjalan', 'violet');
 
 /* =========================================================
    DAFTAR
@@ -46,14 +48,14 @@ function halamanDaftar(view) {
       ${statTile({ label: 'Titipan Berjalan', nilai: num(aktif.length), sub: `${num(unitSisa)} unit di mitra`, warna: 'violet', ikon: '🤝' })}
       ${statTile({ label: 'Nilai Barang Titipan', nilai: rp(totalSisa), sub: 'belum terjual', warna: 'info', ikon: '📦' })}
       ${statTile({ label: 'Belum Disetor', nilai: rp(belumSetor), sub: 'hasil konsinyasi', warna: belumSetor > 0 ? 'bad' : 'ok', ikon: '💵' })}
-      ${statTile({ label: 'Total Titipan', nilai: num(semua.length), sub: 'seluruh riwayat', ikon: '📋' })}
+      ${statTile({ label: 'Total Titipan', nilai: num(semua.filter(k => k.status !== 'batal').length), sub: 'seluruh riwayat', ikon: '📋' })}
     </div>
 
     <div class="toolbar">
       <div class="search-wrap grow"><input class="input" id="cari" placeholder="Cari mitra / no. titipan..." value="${esc(f.q)}"></div>
     </div>
     <div class="chips mb12" id="chipStatus">
-      ${[['aktif', 'Berjalan'], ['selesai', 'Selesai'], ['tempo', 'Lewat Tempo'], ['semua', 'Semua']]
+      ${[['aktif', 'Berjalan'], ['selesai', 'Selesai'], ['tempo', 'Lewat Tempo'], ['semua', 'Semua'], ['batal', 'Dibatalkan']]
         .map(([v, t]) => `<button class="chip ${f.status === v ? 'active' : ''}" data-v="${v}">${t}</button>`).join('')}
     </div>
     <div class="card"><div class="list" id="daftar"></div></div>`;
@@ -67,6 +69,8 @@ function halamanDaftar(view) {
     if (f.status === 'aktif') arr = arr.filter(k => k.status === 'aktif');
     if (f.status === 'selesai') arr = arr.filter(k => k.status === 'selesai');
     if (f.status === 'tempo') arr = arr.filter(k => k.status === 'aktif' && k.jatuhTempo && k.jatuhTempo < todayISO());
+    if (f.status === 'semua') arr = arr.filter(k => k.status !== 'batal');
+    if (f.status === 'batal') arr = arr.filter(k => k.status === 'batal');
     arr = sortBy(arr, k => k.tanggal, true);
 
     if (!arr.length) {
@@ -86,15 +90,19 @@ function halamanDaftar(view) {
         ${avatarEl(m?.nama || '?', m?.tipe === 'agen' ? 'i' : 'v')}
         <div class="ri-main">
           <div class="ri-title">${esc(m?.nama || 'Mitra dihapus')}
-            ${k.status === 'selesai' ? badge('Selesai', 'ok') : badge('Berjalan', 'violet')}
+            ${badgeStatus(k)}
             ${telat ? badge('Lewat tempo', 'bad') : ''}
           </div>
-          <div class="ri-sub">${esc(k.noRef)} · ${fmtTglPendek(k.tanggal)} · titip ${num(titip)} · terjual ${num(terjual)} · sisa ${num(sisa)}</div>
-          <div class="bar" style="max-width:240px"><i class="${persen >= 80 ? 'ok' : persen >= 40 ? '' : 'warn'}" style="width:${Math.min(100, persen)}%"></i></div>
+          ${k.status === 'batal'
+            ? `<div class="ri-sub">${esc(k.noRef)} · ${fmtTglPendek(k.tanggal)} · titip ${num(titip)} · barang kembali ke gudang</div>`
+            : `<div class="ri-sub">${esc(k.noRef)} · ${fmtTglPendek(k.tanggal)} · titip ${num(titip)} · terjual ${num(terjual)} · sisa ${num(sisa)}</div>
+          <div class="bar" style="max-width:240px"><i class="${persen >= 80 ? 'ok' : persen >= 40 ? '' : 'warn'}" style="width:${Math.min(100, persen)}%"></i></div>`}
         </div>
-        <div class="ri-right">
-          <div class="ri-val">${rp(nilaiSisa(k))}</div>
-          <div class="ri-note">sisa titipan</div>
+        <div class="ri-right">${k.status === 'batal'
+          ? `<div class="ri-val muted" style="text-decoration:line-through">${rp(k.nilaiTitip)}</div>
+            <div class="ri-note">dibatalkan</div>`
+          : `<div class="ri-val">${rp(nilaiSisa(k))}</div>
+            <div class="ri-note">sisa titipan</div>`}
         </div>
       </div>`;
     }).join('');
@@ -330,6 +338,7 @@ function modalPilihProduk(form, mitra, onTutup) {
 function halamanDetail(view, id) {
   const k = get('konsinyasi', id);
   if (!k) {
+    setJudul('Konsinyasi');
     view.innerHTML = kosongState('❓', 'Titipan tidak ditemukan', '', '<a class="btn btn-primary" href="#/konsinyasi">Kembali</a>');
     return;
   }
@@ -353,7 +362,7 @@ function halamanDetail(view, id) {
   view.innerHTML = `
     <div class="flex flex-wrap mb12">
       ${badge(fmtTgl(k.tanggal))}
-      ${k.status === 'selesai' ? badge('Selesai', 'ok') : badge('Berjalan', 'violet')}
+      ${badgeStatus(k)}
       ${telat ? badge(`Lewat tempo ${selisihHari(k.jatuhTempo)} hari`, 'bad') : k.jatuhTempo ? badge('Tempo ' + fmtTgl(k.jatuhTempo)) : ''}
       ${sales ? badge('Sales: ' + sales.nama) : ''}
     </div>
@@ -417,7 +426,13 @@ function halamanDetail(view, id) {
       </div>` : ''}
     ${adalah('mitra') && k.status === 'aktif' ? `
       <div class="hint">ℹ️ Laporan penjualan titipan dicatat oleh sales atau pemilik.
-        Hubungi sales pendamping Anda bila sudah ada barang yang terjual.</div>` : ''}`;
+        Hubungi sales pendamping Anda bila sudah ada barang yang terjual.</div>` : ''}
+    ${k.status === 'batal' ? `
+      <div class="hint">⛔ Titipan ini dibatalkan. Sisa barangnya sudah dikembalikan ke stok gudang.</div>`
+    : bolehKelola() ? `
+      <div class="btn-row mt12">
+        <button class="btn btn-ghost" id="btnBatal">🗑️ Batalkan Titipan</button>
+      </div>` : ''}`;
 
   view.querySelector('#btnLapor')?.addEventListener('click', () => modalLapor(k));
   view.querySelector('#btnTambah')?.addEventListener('click', () => modalTambahTitipan(k));
@@ -431,6 +446,30 @@ function halamanDetail(view, id) {
       ok: 'Ya, tutup',
     });
     if (ya) { tutupKonsinyasi(k.id, true); sukses('Titipan ditutup, sisa diretur ke gudang'); segarkan(); }
+  });
+  view.querySelector('#btnBatal')?.addEventListener('click', async () => {
+    const setoran = setoranKonsinyasi(k.id);
+    if (setoran.length) {
+      const buka = await konfirmasi({
+        judul: 'Titipan sudah ada setoran',
+        pesan: `Titipan ini sudah punya setoran ${setoran.map(j => `<b>${esc(j.noRef)}</b>`).join(', ')}.<br><br>
+          Batalkan dulu nota setoran itu di <b>Riwayat Penjualan</b>, lalu batalkan titipan ini.
+          Bila hanya ingin mengakhiri titipan, pakai <b>Tutup & Retur Sisa</b>.`,
+        ok: 'Buka Riwayat Penjualan', batal: 'Tutup',
+      });
+      if (buka) pergi('penjualan');
+      return;
+    }
+    const sisa = sisaKons(k);
+    const ya = await konfirmasi({
+      judul: 'Batalkan titipan?', bahaya: true, ok: 'Ya, batalkan',
+      pesan: `Titipan <b>${esc(k.noRef)}</b> ke <b>${esc(m?.nama || '-')}</b> akan dibatalkan.<br><br>
+        ${sisa > 0 ? `Sisa <b>${num(sisa)} unit</b> dikembalikan ke stok gudang. ` : ''}Pakai ini untuk titipan yang salah catat atau dobel.`,
+    });
+    if (!ya) return;
+    if (!batalkanKonsinyasi(k.id)) return gagal('Titipan tidak bisa dibatalkan');
+    sukses(`Titipan ${k.noRef} dibatalkan`);
+    pergi('konsinyasi');
   });
   view.querySelectorAll('[data-nota]').forEach(el => el.onclick = () => {
     const j = get('penjualan', el.dataset.nota);

@@ -78,6 +78,11 @@ Ketika mitra melapor, buka titipan → **Lapor Hasil Penjualan**, isi jumlah **t
 Titipan otomatis berstatus *selesai* bila seluruh barang sudah terjual atau diretur. Tersedia juga
 **Tutup & Retur Sisa** untuk menutup titipan sekaligus menarik sisa barang.
 
+Titipan yang salah catat atau dobel dibatalkan pemilik lewat **Batalkan Titipan** di halaman
+detailnya: sisa barang kembali ke gudang (tercatat sebagai *Pembatalan* di kartu stok) dan
+titipan pindah ke filter *Dibatalkan*. Titipan yang sudah punya setoran baru bisa dibatalkan
+setelah nota setorannya dibatalkan di Riwayat Penjualan.
+
 ### 5. Stok opname
 `Stok Opname` → isi jumlah fisik hasil hitung gudang. Aplikasi menampilkan selisih terhadap
 catatan sistem beserta nilai rupiahnya, lalu menyesuaikan stok. Kekurangan fisik dihitung sebagai

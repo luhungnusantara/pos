@@ -42,7 +42,7 @@ export async function muat(paksa = false) {
   const nama = bagian[0] || 'dashboard';
   const params = bagian.slice(1).map(decodeURIComponent);
 
-  const view = document.getElementById('view');
+  let view = document.getElementById('view');
   const pemuat = rute[nama];
   if (!pemuat) {
     view.innerHTML = `<div class="empty"><div class="em-ico">🧭</div><h3>Halaman tidak ditemukan</h3>
@@ -74,7 +74,13 @@ export async function muat(paksa = false) {
     setFab(null);
     const modul = await pemuat();
     aktif = { nama, params, modul };
-    view.innerHTML = '';
+    // Halaman diberi #view yang baru, bukan sekadar dikosongkan: pendengar
+    // klik yang dipasang halaman sebelumnya pada #view ikut terbuang. Tanpa
+    // ini, pendengar Kartu Stok tetap hidup di halaman lain dan setiap baris
+    // ber-data-id dilempar ke stok/<id> ("Produk tidak ditemukan").
+    const baru = view.cloneNode(false);
+    view.replaceWith(baru);
+    view = baru;
     await modul.render(view, params);
     if (pindahHalaman || !paksa) {
       view.scrollTop = 0;

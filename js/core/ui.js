@@ -76,6 +76,7 @@ export function modal(opsi = {}) {
   root.appendChild(wrap);
 
   const handle = {
+    opsi, // dibaca penutup Escape (tutupEsc)
     el: wrap.querySelector('.modal'),
     body: wrap.querySelector('.modal-body'),
     foot: wrap.querySelector('.modal-foot'),
