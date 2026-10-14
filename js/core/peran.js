@@ -1,4 +1,4 @@
-/* peran.js — mode peran perangkat: Pemilik, Sales, dan Agen/Reseller.
+/* peran.js — peran perangkat: Pusat, Pemilik, Keuangan, Investor, Sales, dan Agen/Reseller.
    Data tersimpan lokal di perangkat, jadi ini pembatasan tampilan
    (menu, halaman, dan angka sensitif) — bukan autentikasi jaringan. */
 import { db, get, setSesi } from './store.js';
@@ -7,6 +7,8 @@ import { nowISO } from './utils.js';
 export const PERAN = {
   pusat: { label: 'Pusat', ikon: '🏛️', warna: '', ket: 'Seluruh cabang, satu per satu' },
   owner: { label: 'Pemilik', ikon: '👑', warna: '', ket: 'Akses penuh ke seluruh menu' },
+  keuangan: { label: 'Keuangan', ikon: '💼', warna: 'info', ket: 'Lihat semua angka; catat kas & pembayaran' },
+  investor: { label: 'Investor', ikon: '📈', warna: 'violet', ket: 'Hanya melihat dashboard & laporan' },
   sales: { label: 'Sales', ikon: '🧑‍💼', warna: 'info', ket: 'Hanya mitra binaan & komisi sendiri' },
   mitra: { label: 'Agen / Reseller', ikon: '🏪', warna: 'violet', ket: 'Hanya titipan, nota, dan tagihan sendiri' },
 };
@@ -17,6 +19,11 @@ const AKSES = {
   owner: '*',
   sales: ['dashboard', 'kasir', 'penjualan', 'konsinyasi', 'mitra', 'komisi', 'produk', 'stok', 'piutang'],
   mitra: ['dashboard', 'produk', 'konsinyasi', 'penjualan', 'piutang'],
+  // keuangan melihat hampir semuanya, tetapi tidak menjual, tidak mengubah
+  // data induk, dan tidak mengelola akun (Pengaturan)
+  keuangan: ['dashboard', 'penjualan', 'konsinyasi', 'pembelian', 'piutang',
+    'produk', 'stok', 'mitra', 'komisi', 'kas', 'laporan'],
+  investor: ['dashboard', 'laporan'],
 };
 
 /* ---------- keadaan sesi ---------- */
@@ -47,6 +54,7 @@ export function namaPengguna() {
   if (isPusat()) return db.sesi?.namaPusat || 'Pusat';
   if (adalah('sales')) return salesAktif()?.nama || 'Sales';
   if (adalah('mitra')) return mitraAktif()?.nama || 'Mitra';
+  if (adalah('keuangan') || adalah('investor')) return db.sesi?.namaAkun || PERAN[peranAktif()].label;
   return db.pengaturan.pemilik || 'Pemilik';
 }
 
@@ -69,14 +77,23 @@ export const bolehBuka = nama => {
 /** ubah data induk (produk, mitra, sales, pengaturan) — hanya Pemilik */
 export const bolehUbah = () => setaraPemilik();
 
+/** melihat seluruh angka toko — keuangan dan investor memang dibuatkan akun untuk ini */
+const lihatSemuaAngka = () => setaraPemilik() || adalah('keuangan') || adalah('investor');
+
 /** angka rahasia usaha: harga beli, HPP, laba, margin, nilai persediaan */
-export const bolehLihatModal = () => setaraPemilik();
+export const bolehLihatModal = () => lihatSemuaAngka();
 
 /** kas, pembelian, hutang supplier, laporan laba rugi */
-export const bolehLihatKas = () => setaraPemilik();
+export const bolehLihatKas = () => lihatSemuaAngka();
 
 /** mencatat transaksi baru (penjualan, konsinyasi, laporan konsinyasi) */
 export const bolehTransaksi = () => setaraPemilik() || adalah('sales');
+
+/** mencatat uang: kas manual, membayar hutang supplier, membayar komisi */
+export const bolehKeuangan = () => setaraPemilik() || adalah('keuangan');
+
+/** menerima pelunasan piutang mitra */
+export const bolehTerimaBayar = () => bolehTransaksi() || adalah('keuangan');
 
 /* ---------- penyaringan data ---------- */
 /** mitra yang boleh dilihat peran aktif */

@@ -8,7 +8,7 @@ import { tampilkanStruk, bagikanStruk } from '../core/struk.js';
 import { modalBayarPiutang } from '../core/bayar.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
-import { bolehKelola, bolehLihatModal, bolehTransaksi, filterPenjualan } from '../core/peran.js';
+import { bolehKelola, bolehLihatModal, bolehTransaksi, bolehTerimaBayar, filterPenjualan } from '../core/peran.js';
 import { kunciTertunda, onSinkron } from '../core/sinkron.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, unduh, toCSV, todayISO,
@@ -95,7 +95,7 @@ function detail(j) {
         </div></div>` : ''}`,
     tombol: dibatalkan ? [{ teks: 'Tutup', kelas: 'btn-ghost' }] : [
       { teks: '🧾 Nota', kelas: 'btn-ghost', aksi: () => tampilkanStruk(j) },
-      ...(sisa > 0 && bolehTransaksi() ? [{ teks: '💵 Terima Bayar', kelas: 'btn-primary', aksi: x => { x.tutup(); modalBayarPiutang(j, segarkan); } }] : []),
+      ...(sisa > 0 && bolehTerimaBayar() ? [{ teks: '💵 Terima Bayar', kelas: 'btn-primary', aksi: x => { x.tutup(); modalBayarPiutang(j, segarkan); } }] : []),
       { teks: '⋯', kelas: 'btn-ghost', aksi: () => menuLain(j, h) },
     ],
   });

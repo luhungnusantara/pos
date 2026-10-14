@@ -17,7 +17,7 @@ import { onSinkron, jalankan, keluar as keluarSinkron, akunTersimpan, tokoTersim
    Endpoint-nya sudah ada di server sejak awal, tetapi tanpa layar ini pemilik
    tidak punya cara membuatkan akun untuk sales dan agennya — dan tanpa akun,
    pembatasan peran tidak pernah benar-benar terpakai. */
-const PERAN_AKUN = { owner: 'Pemilik', sales: 'Sales', mitra: 'Agen / Reseller' };
+const PERAN_AKUN = { owner: 'Pemilik', keuangan: 'Keuangan', investor: 'Investor', sales: 'Sales', mitra: 'Agen / Reseller' };
 
 async function gambarAkun(view) {
   const bungkus = view.querySelector('#kartuAkunWrap');
@@ -42,8 +42,8 @@ async function gambarAkun(view) {
     const mati = u.nonaktif === true;
     const ini = u._id === saya._id;
     return `<div class="row-item">
-      <div class="avatar ${u.peran === 'sales' ? 'i' : u.peran === 'mitra' ? 'v' : ''}">
-        ${u.peran === 'owner' ? '👑' : u.peran === 'sales' ? '🧑‍💼' : '🏪'}</div>
+      <div class="avatar ${u.peran === 'sales' || u.peran === 'keuangan' ? 'i' : u.peran === 'mitra' || u.peran === 'investor' ? 'v' : ''}">
+        ${PERAN[u.peran]?.ikon || '👤'}</div>
       <div class="ri-main">
         <div class="ri-title">${esc(u.nama || '-')}
           ${mati ? badge('Dicabut', 'bad') : ''}${ini ? badge('Anda', 'ok') : ''}</div>
@@ -56,10 +56,12 @@ async function gambarAkun(view) {
 
   kotak.innerHTML = `
     <div class="card mb12"><div class="list">${baris || '<div class="hint">Belum ada akun lain.</div>'}</div></div>
-    <button class="btn btn-primary btn-block" id="akTambah">＋ Buatkan Akun Sales / Agen</button>
+    <button class="btn btn-primary btn-block" id="akTambah">＋ Buatkan Akun Sales / Agen / Keuangan / Investor</button>
     <div class="hint mt8">Akun sales hanya bisa membaca dan menyetor data miliknya
-      sendiri — ditegakkan server, bukan sekadar disembunyikan di tampilan.
-      Mencabut akses berlaku seketika, bahkan pada perangkat yang sudah terlanjur masuk.</div>`;
+      sendiri. Akun keuangan melihat seluruh angka tetapi hanya bisa mencatat kas dan
+      pembayaran; akun investor hanya bisa melihat. Semuanya ditegakkan server, bukan
+      sekadar disembunyikan di tampilan. Mencabut akses berlaku seketika, bahkan pada
+      perangkat yang sudah terlanjur masuk.</div>`;
 
   kotak.querySelectorAll('[data-akses]').forEach(b => {
     b.onclick = async () => {
@@ -91,17 +93,18 @@ function formAkunBaru(view) {
     .map(x => ({ value: `sales:${x.id}`, label: `Sales — ${x.nama}` }));
   const opsiMitra = db.mitra.filter(x => x.aktif !== false)
     .map(x => ({ value: `mitra:${x.id}`, label: `${x.tipe === 'agen' ? 'Agen' : 'Reseller'} — ${x.nama}` }));
-  const opsi = [...opsiSales, ...opsiMitra];
-
-  if (!opsi.length) {
-    return gagal('Tambahkan data Sales atau Mitra terlebih dahulu, lalu buat akunnya di sini.');
-  }
+  // keuangan & investor melihat seluruh toko, jadi tidak ditautkan ke data siapa pun
+  const opsiLihatSemua = [
+    { value: 'keuangan:', label: 'Keuangan — lihat semua, catat kas & pembayaran' },
+    { value: 'investor:', label: 'Investor — hanya lihat dashboard & laporan' },
+  ];
+  const opsi = [...opsiSales, ...opsiMitra, ...opsiLihatSemua];
 
   formModal({
     judul: 'Buatkan Akun',
     fields: [
       { name: 'tautan', label: 'Untuk siapa', tipe: 'select', opsi, wajib: true, lebar: 'full',
-        hint: 'Akun akan ditautkan ke data ini — hanya datanya yang bisa dia lihat.' },
+        hint: 'Sales & agen hanya melihat datanya sendiri. Keuangan & investor melihat seluruh toko.' },
       { name: 'nama', label: 'Nama pemegang akun', wajib: true, lebar: 'full' },
       { name: 'phone', label: 'Nomor HP (dipakai untuk masuk)', tipe: 'tel', wajib: true, lebar: 'full',
         hint: 'Format 628xxxxxxxxx' },

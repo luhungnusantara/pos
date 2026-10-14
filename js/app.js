@@ -1,10 +1,10 @@
 /* app.js — titik masuk aplikasi */
 import { db, sub } from './core/store.js';
-import { mulaiRouter, pergi, onRute, ruteAktif } from './core/router.js';
+import { mulaiRouter, pergi, onRute, ruteAktif, segarkan } from './core/router.js';
 import { toast, konfirmasi } from './core/ui.js';
 import { $, esc } from './core/utils.js';
 import { komisiTertunda } from './core/domain.js';
-import { PERAN, peranAktif, bolehBuka, namaPengguna, adalah, salesAktif } from './core/peran.js';
+import { PERAN, peranAktif, bolehBuka, bolehKelola, namaPengguna, adalah, salesAktif } from './core/peran.js';
 import { dialogGantiPeran } from './core/ganti-peran.js';
 import { daftarkanServiceWorker, onJaringan, mintaPenyimpananTetap, versiAplikasi } from './core/luring.js';
 import { onSinkron, jalankan, pasangPemicu, KEADAAN } from './core/sinkron.js';
@@ -76,6 +76,18 @@ const BOTTOM_PERAN = {
     { id: 'konsinyasi', teks: 'Titipan', ikon: '🤝' },
     { id: 'penjualan', teks: 'Nota', ikon: '🧾' },
     { id: 'piutang', teks: 'Tagihan', ikon: '📌' },
+    { id: '_menu', teks: 'Menu', ikon: '☰' },
+  ],
+  keuangan: [
+    { id: 'dashboard', teks: 'Beranda', ikon: '📊' },
+    { id: 'kas', teks: 'Kas', ikon: '🏦' },
+    { id: 'piutang', teks: 'Piutang', ikon: '📌' },
+    { id: 'laporan', teks: 'Laporan', ikon: '📈' },
+    { id: '_menu', teks: 'Menu', ikon: '☰' },
+  ],
+  investor: [
+    { id: 'dashboard', teks: 'Beranda', ikon: '📊' },
+    { id: 'laporan', teks: 'Laporan', ikon: '📈' },
     { id: '_menu', teks: 'Menu', ikon: '☰' },
   ],
 };
@@ -167,6 +179,11 @@ function gambarBrand() {
 
 /* ---------- data contoh untuk pengguna baru ---------- */
 async function tawarkanContoh() {
+  /* Hanya untuk pemilik. Perangkat peran lain kosong karena belum selesai
+     menarik data tokonya, bukan karena tokonya baru — dan data contoh yang
+     dimuat di sana ikut tersetor: akun keuangan, misalnya, berwenang menulis
+     kas, sehingga kas contoh akan masuk ke pembukuan toko sungguhan. */
+  if (!bolehKelola()) return;
   if (db.produk.length || localStorage.getItem('pos_tolak_contoh')) return;
   const ya = await konfirmasi({
     judul: '👋 Selamat datang!',
@@ -222,6 +239,18 @@ async function mulai() {
 
   mulaiRouter();
   tawarkanContoh();
+
+  /* Data tarikan tidak menggambar ulang halaman yang sedang terbuka. Di perangkat
+     yang baru masuk, beranda terlanjur digambar dari database kosong dan tetap
+     menunjukkan Rp0 sampai pengguna pindah halaman — bagi investor, yang hanya
+     punya Beranda dan Laporan, aplikasinya tampak rusak. Hanya halaman tampilan
+     yang disegarkan, dan tidak saat pengguna sedang mengisi kolom di dalamnya. */
+  window.addEventListener('pos:data-masuk', () => {
+    if (!['dashboard', 'laporan'].includes(ruteAktif())) return;
+    const fokus = document.activeElement;
+    if (fokus && $('#view')?.contains(fokus) && /^(INPUT|SELECT|TEXTAREA)$/.test(fokus.tagName)) return;
+    segarkan();
+  });
 
   // cegah zoom ganda-ketuk pada iOS untuk elemen tombol
   document.addEventListener('dblclick', e => {

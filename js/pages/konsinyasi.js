@@ -592,7 +592,7 @@ function modalTambahTitipan(k) {
    ========================================================= */
 export function render(view, params = []) {
   const [mode, arg] = params;
-  if (mode === 'baru') return halamanBaru(view, arg || '');
+  if (mode === 'baru' && bolehTransaksi()) return halamanBaru(view, arg || '');
   if (mode === 'detail' && arg) return halamanDetail(view, arg);
   return halamanDaftar(view);
 }

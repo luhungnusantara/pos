@@ -6,7 +6,7 @@ import {
   kosongState, statTile, badge, modal, avatarEl,
 } from '../core/ui.js';
 import { segarkan, pergi } from '../core/router.js';
-import { bolehUbah, bolehTransaksi, filterMitra } from '../core/peran.js';
+import { bolehUbah, bolehTransaksi, filterMitra, adalah } from '../core/peran.js';
 import { esc, rp, num, toNum, cocok, sum, debounce, sortBy, fmtTgl } from '../core/utils.js';
 
 let filter = { q: '', tipe: 'semua' };
@@ -130,7 +130,7 @@ export function render(view) {
   const semua = filterMitra(db.mitra);
   const agen = semua.filter(m => m.tipe === 'agen');
   const reseller = semua.filter(m => m.tipe === 'reseller');
-  setJudul(bolehUbah() ? 'Agen & Reseller' : 'Mitra Binaan', `${agen.length} agen · ${reseller.length} reseller`);
+  setJudul(adalah('sales') ? 'Mitra Binaan' : 'Agen & Reseller', `${agen.length} agen · ${reseller.length} reseller`);
   setTopbar(bolehUbah() ? [{ teks: 'Mitra Baru', ikon: '＋', onClick: () => formMitra() }] : []);
   setFab(bolehUbah() ? { ikon: '＋', teks: 'Mitra baru', onClick: () => formMitra() } : null);
 
@@ -138,7 +138,7 @@ export function render(view) {
     <div class="grid g3 mb12">
       ${statTile({ label: 'Agen', nilai: num(agen.length), sub: 'harga agen', warna: 'info', ikon: '🏬' })}
       ${statTile({ label: 'Reseller', nilai: num(reseller.length), sub: 'harga reseller', warna: 'violet', ikon: '🏪' })}
-      ${statTile({ label: 'Total Piutang', nilai: rp(sum(semua, m => totalPiutang(m.id))), sub: bolehUbah() ? 'seluruh mitra' : 'mitra binaan', warna: 'bad', ikon: '📌' })}
+      ${statTile({ label: 'Total Piutang', nilai: rp(sum(semua, m => totalPiutang(m.id))), sub: adalah('sales') ? 'mitra binaan' : 'seluruh mitra', warna: 'bad', ikon: '📌' })}
     </div>
     <div class="toolbar">
       <div class="search-wrap grow"><input class="input" id="cari" placeholder="Cari mitra..." value="${esc(filter.q)}"></div>

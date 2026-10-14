@@ -104,7 +104,7 @@ const idSah = v => !!v && !/^0+$/.test(String(v));
 
 export function terapkanPeranDariAkun(akun, toko = null, pusat = null) {
   if (!akun?.peran) return null;
-  const patch = { peran: akun.peran, salesId: '', mitraId: '' };
+  const patch = { peran: akun.peran, salesId: '', mitraId: '', namaAkun: akun.nama || '' };
   if (akun.peran === 'sales') patch.salesId = akun.ref_id || '';
   if (akun.peran === 'mitra') patch.mitraId = akun.ref_id || '';
   if (akun.peran === 'pusat' && pusat?.nama) patch.namaPusat = pusat.nama;

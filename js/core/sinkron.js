@@ -330,6 +330,7 @@ export async function tarik() {
     await simpanKunci(kunciKursor(), kursor);
     if (!hasil.lagi) break;
   }
+  if (masuk) window.dispatchEvent(new CustomEvent('pos:data-masuk', { detail: masuk }));
   return masuk;
 }
 

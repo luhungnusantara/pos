@@ -212,14 +212,38 @@ Belum ada akun bawaan — akun pertama dibuat sendiri:
    server, nama toko, nama pemilik, nomor HP, dan kata sandi. Nomor HP dan kata
    sandi itulah kredensial **Pemilik** Anda.
 2. Setelah masuk, buka **Pengaturan → Akun Pengguna** untuk membuatkan akun
-   Sales dan Agen. Tiap akun ditautkan ke data Sales/Mitra yang sudah ada,
-   dipilih dari daftar — bukan diketik — supaya penyaringan datanya tidak
-   diam-diam meleset karena id salah ketik.
+   Sales, Agen, Keuangan, atau Investor. Akun sales dan agen ditautkan ke data
+   Sales/Mitra yang sudah ada, dipilih dari daftar — bukan diketik — supaya
+   penyaringan datanya tidak diam-diam meleset karena id salah ketik.
 3. Berikan nomor HP dan kata sandinya kepada yang bersangkutan.
 
 Akses bisa **dicabut dan dipulihkan** kapan saja dari kartu yang sama.
 Pencabutan berlaku seketika, bahkan pada perangkat yang sudah terlanjur masuk —
 berguna saat HP sales hilang.
+
+### Akun Keuangan & Investor
+
+Untuk pihak yang perlu melihat angka toko tanpa ikut berjualan:
+
+| | 💼 Keuangan | 📈 Investor |
+|---|---|---|
+| Menu | Dashboard, Riwayat Penjualan, Konsinyasi, Pembelian, Piutang & Hutang, Produk, Kartu Stok, Agen & Reseller, Komisi, Kas, Laporan | Dashboard, Laporan |
+| Angka yang tampil | seluruh toko, termasuk HPP, laba, dan kas | seluruh toko, termasuk HPP, laba, dan kas |
+| Boleh mencatat | kas masuk/keluar, pelunasan piutang, pembayaran hutang, pembayaran komisi | tidak ada |
+| Tidak boleh | menjual, menitip, stok masuk/opname, mengubah produk/harga/mitra/sales, mengelola akun | — |
+
+Pembatasan ini **ditegakkan server**. Akun keuangan hanya bisa mengubah kolom
+pembayaran (`dibayar`, status komisi) pada transaksi yang sudah ada — membuat
+penjualan baru atau mengubah totalnya ditolak, walaupun aplikasinya diutak-atik.
+Akun investor tidak bisa menyetor apa pun.
+
+> ⚠️ Seperti peran lain, seluruh data toko tetap terunduh ke HP investor supaya
+> aplikasi bisa dibuka tanpa sinyal. Di layar yang tampil hanya Dashboard dan
+> Laporan, tetapi data mentahnya (nama pelanggan, tiap nota) ada di perangkat.
+
+Tawaran **data contoh** pada perangkat yang masih kosong hanya muncul untuk
+Pemilik. Perangkat peran lain kosong karena belum selesai menarik data tokonya,
+dan data contoh yang dimuat di sana akan ikut tersetor ke toko sungguhan.
 
 ### Yang berubah dari mode peran perangkat
 

@@ -7,6 +7,7 @@ import {
 import { modalBayarHutang } from '../core/bayar.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
+import { bolehKelola, bolehKeuangan } from '../core/peran.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, todayISO, tambahHari, round2,
 } from '../core/utils.js';
@@ -21,8 +22,8 @@ function halamanDaftar(view) {
   const semua = db.pembelian.filter(b => (!dari || b.tanggal >= dari) && (!sampai || b.tanggal <= sampai));
 
   setJudul('Pembelian / Stok Masuk', `${label} · ${semua.filter(b => b.status !== 'batal').length} faktur`);
-  setTopbar([{ teks: 'Beli', ikon: '＋', onClick: () => pergi('pembelian/baru') }]);
-  setFab({ ikon: '＋', teks: 'Pembelian baru', onClick: () => pergi('pembelian/baru') });
+  setTopbar(bolehKelola() ? [{ teks: 'Beli', ikon: '＋', onClick: () => pergi('pembelian/baru') }] : []);
+  setFab(bolehKelola() ? { ikon: '＋', teks: 'Pembelian baru', onClick: () => pergi('pembelian/baru') } : null);
 
   const aktif = semua.filter(b => b.status !== 'batal');
   const nilai = sum(aktif, b => b.total);
@@ -58,7 +59,7 @@ function halamanDaftar(view) {
     if (!arr.length) {
       box.innerHTML = kosongState('📥', 'Belum ada pembelian',
         'Catat pembelian stok dari supplier agar stok gudang dan hutang tercatat rapi.',
-        '<a class="btn btn-primary" href="#/pembelian/baru">＋ Pembelian Baru</a>');
+        bolehKelola() ? '<a class="btn btn-primary" href="#/pembelian/baru">＋ Pembelian Baru</a>' : '');
       return;
     }
     box.innerHTML = arr.map(b => {
@@ -125,8 +126,8 @@ function detail(b) {
         <div class="kv"><span class="k">Dibayar</span><span class="v pos">${rp(b.dibayar)}</span></div>
         ${sisa > 0 ? `<div class="kv"><span class="k">Sisa hutang</span><span class="v neg">${rp(sisa)}</span></div>` : ''}
       </div></div>`,
-    tombol: batal ? [{ teks: 'Tutup', kelas: 'btn-ghost' }] : [
-      {
+    tombol: batal || !(bolehKelola() || (sisa > 0 && bolehKeuangan())) ? [{ teks: 'Tutup', kelas: 'btn-ghost' }] : [
+      ...(bolehKelola() ? [{
         teks: '⛔ Batalkan', kelas: 'btn-ghost', aksi: async h => {
           const ya = await konfirmasi({
             judul: 'Batalkan pembelian?', bahaya: true, ok: 'Ya, batalkan',
@@ -134,8 +135,8 @@ function detail(b) {
           });
           if (ya) { batalkanPembelian(b.id); h.tutup(); sukses('Pembelian dibatalkan'); segarkan(); }
         },
-      },
-      ...(sisa > 0 ? [{ teks: '💵 Bayar Hutang', kelas: 'btn-primary', aksi: h => { h.tutup(); modalBayarHutang(b, segarkan); } }] : []),
+      }] : []),
+      ...(sisa > 0 && bolehKeuangan() ? [{ teks: '💵 Bayar Hutang', kelas: 'btn-primary', aksi: h => { h.tutup(); modalBayarHutang(b, segarkan); } }] : []),
     ],
   });
 }
@@ -346,6 +347,6 @@ function halamanBaru(view) {
 }
 
 export function render(view, params = []) {
-  if (params[0] === 'baru') return halamanBaru(view);
+  if (params[0] === 'baru' && bolehKelola()) return halamanBaru(view);
   return halamanDaftar(view);
 }

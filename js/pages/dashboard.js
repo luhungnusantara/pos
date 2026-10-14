@@ -7,7 +7,8 @@ import { setJudul, setTopbar, setFab, kosongState, statTile, badge } from '../co
 import { tampilkanStruk } from '../core/struk.js';
 import { pergi } from '../core/router.js';
 import {
-  adalah, bolehKelola, salesAktif, mitraAktif, filterPenjualan, filterMitra, filterKonsinyasi,
+  adalah, bolehKelola, bolehLihatKas, bolehTransaksi, bolehBuka, salesAktif, mitraAktif,
+  filterPenjualan, filterMitra, filterKonsinyasi,
 } from '../core/peran.js';
 import {
   esc, rp, rpShort, num, toNum, sum, sortBy, fmtTgl, fmtTglPendek, fmtJam, todayISO, awalBulan, akhirBulan, selisihHari,
@@ -18,8 +19,12 @@ const salam = () => {
   return j < 11 ? 'Selamat pagi' : j < 15 ? 'Selamat siang' : j < 18 ? 'Selamat sore' : 'Selamat malam';
 };
 
+// tujuan yang tidak boleh dibuka peran ini tidak dijadikan tautan
+const bisaKe = ke => bolehBuka(ke.split('/')[0]);
+
 const kartuPeringatan = (ikon, judul, nilai, sub, ke, warna) => `
-  <div class="card" data-ke="${ke}" style="cursor:pointer;border-left:3px solid var(--${warna})">
+  <div class="card" ${bisaKe(ke) ? `data-ke="${ke}" style="cursor:pointer;border-left:3px solid var(--${warna})"`
+    : `style="border-left:3px solid var(--${warna})"`}>
     <div class="card-body">
       <div class="flex" style="align-items:flex-start">
         <span style="font-size:22px">${ikon}</span>
@@ -28,7 +33,7 @@ const kartuPeringatan = (ikon, judul, nilai, sub, ke, warna) => `
           <div style="font-size:16px;font-weight:750;margin:2px 0;color:var(--${warna})">${nilai}</div>
           <div class="xs muted">${sub}</div>
         </div>
-        <span class="muted">›</span>
+        ${bisaKe(ke) ? '<span class="muted">›</span>' : ''}
       </div>
     </div>
   </div>`;
@@ -75,7 +80,7 @@ function omzetHarianPeran(n = 14) {
 function pasangKlik(view) {
   view.addEventListener('click', e => {
     const ke = e.target.closest('[data-ke]');
-    if (ke) return pergi(ke.dataset.ke);
+    if (ke) return bisaKe(ke.dataset.ke) && pergi(ke.dataset.ke);
     const nota = e.target.closest('[data-nota]');
     if (nota) {
       const j = get('penjualan', nota.dataset.nota);
@@ -103,9 +108,18 @@ const PINTASAN_SALES = [
   { ke: 'produk', ikon: '🚬', teks: 'Harga', warna: 'var(--ok-soft)', ink: 'var(--ok)' },
   { ke: 'komisi', ikon: '🎯', teks: 'Komisi', warna: 'var(--bad-soft)', ink: 'var(--bad)' },
 ];
+const PINTASAN_KEUANGAN = [
+  { ke: 'kas', ikon: '🏦', teks: 'Kas', warna: 'var(--ok-soft)', ink: 'var(--ok)' },
+  { ke: 'piutang', ikon: '📌', teks: 'Piutang', warna: 'var(--warn-soft)', ink: 'var(--warn)' },
+  { ke: 'komisi', ikon: '🎯', teks: 'Komisi', warna: 'var(--bad-soft)', ink: 'var(--bad)' },
+  { ke: 'pembelian', ikon: '📥', teks: 'Hutang', warna: 'var(--info-soft)', ink: 'var(--info)' },
+  { ke: 'penjualan', ikon: '💰', teks: 'Penjualan', warna: 'var(--primary-soft)', ink: 'var(--primary)' },
+  { ke: 'laporan', ikon: '📈', teks: 'Laporan', warna: 'var(--violet-soft)', ink: 'var(--violet)' },
+];
 
 function dashboardKerja(view) {
-  const owner = bolehKelola();
+  // tampilan seluruh toko: pemilik, pusat, keuangan, dan investor
+  const owner = bolehLihatKas();
   const sales = salesAktif();
   const hari = todayISO();
 
@@ -129,13 +143,14 @@ function dashboardKerja(view) {
   const terakhir = sortBy(filterPenjualan(penjualanAktif()), j => `${j.tanggal}${j.dibuat}`, true).slice(0, 6);
   const titipanSaya = sum(binaan, m => stokKonsinyasi(null, m.id));
 
-  setJudul(`${salam()}${owner && db.pengaturan.pemilik ? ', ' + db.pengaturan.pemilik.split(' ')[0]
-    : sales ? ', ' + sales.nama.split(' ')[0] : ''}!`, fmtTgl(hari));
-  setTopbar([{ teks: 'Jual', ikon: '🧾', onClick: () => pergi('kasir') }]);
-  setFab({ ikon: '🧾', teks: 'Penjualan baru', onClick: () => pergi('kasir') });
+  const sapa = sales ? sales.nama : bolehKelola() ? db.pengaturan.pemilik : owner ? db.sesi?.namaAkun : '';
+  setJudul(`${salam()}${sapa ? ', ' + sapa.split(' ')[0] : ''}!`, fmtTgl(hari));
+  setTopbar(bolehTransaksi() ? [{ teks: 'Jual', ikon: '🧾', onClick: () => pergi('kasir') }] : []);
+  setFab(bolehTransaksi() ? { ikon: '🧾', teks: 'Penjualan baru', onClick: () => pergi('kasir') } : null);
 
-  const pintasan = owner ? PINTASAN_OWNER : PINTASAN_SALES;
-  const belumAdaData = owner && !db.produk.length;
+  const pintasan = bolehKelola() ? PINTASAN_OWNER : adalah('keuangan') ? PINTASAN_KEUANGAN
+    : adalah('sales') ? PINTASAN_SALES : [];
+  const belumAdaData = bolehKelola() && !db.produk.length;
 
   view.innerHTML = `
     ${belumAdaData ? `
@@ -183,7 +198,7 @@ function dashboardKerja(view) {
         <div class="hint">${rp(omzetBulan)} dari target ${rp(sales.target)}</div>
       </div></div>` : ''}
 
-    <div class="card mb12">
+    ${pintasan.length ? `<div class="card mb12">
       <div class="card-head"><h2>⚡ Aksi Cepat</h2></div>
       <div class="card-body tight">
         <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px">
@@ -194,7 +209,7 @@ function dashboardKerja(view) {
             </button>`).join('')}
         </div>
       </div>
-    </div>
+    </div>` : ''}
 
     ${(menipis.length || tempo.length || komPending > 0 || konsTelat.length) ? `
       <div class="section-title">Perlu Perhatian</div>
@@ -235,7 +250,7 @@ function dashboardKerja(view) {
 
       <div class="card">
         <div class="card-head"><h2>${owner ? '📦 Posisi Persediaan' : '🏪 Mitra Binaan'}</h2>
-          <a class="btn btn-xs btn-ghost" href="#/${owner ? 'stok' : 'mitra'}">Detail ›</a></div>
+          ${bisaKe(owner ? 'stok' : 'mitra') ? `<a class="btn btn-xs btn-ghost" href="#/${owner ? 'stok' : 'mitra'}">Detail ›</a>` : ''}</div>
         <div class="card-body">
           ${owner ? `
             <div class="kv"><span class="k">Nilai stok gudang</span><span class="v">${rp(nilaiPersediaan())}</span></div>
@@ -262,7 +277,7 @@ function dashboardKerja(view) {
       </div>` : ''}
       <div class="card">
         <div class="card-head"><h2>🕒 Transaksi Terakhir</h2>
-          <a class="btn btn-xs btn-ghost" href="#/penjualan">Semua ›</a></div>
+          ${bisaKe('penjualan') ? '<a class="btn btn-xs btn-ghost" href="#/penjualan">Semua ›</a>' : ''}</div>
         <div class="list" id="terakhir"></div>
       </div>
     </div>`;
@@ -270,7 +285,7 @@ function dashboardKerja(view) {
   if (owner) {
     const top = produkTerlaris(awalBulan(), akhirBulan(), 5);
     view.querySelector('#terlaris').innerHTML = top.length ? top.map((m, i) => `
-      <div class="row-item" data-ke="stok/${m.produkId}">
+      <div class="row-item" ${bisaKe('stok') ? `data-ke="stok/${m.produkId}"` : ''}>
         <div class="avatar ${i === 0 ? '' : 'i'}">${i + 1}</div>
         <div class="ri-main"><div class="ri-title">${esc(m.produk?.nama || '-')}</div>
           <div class="ri-sub">${num(m.qty)} unit · laba ${rp(m.laba)}</div></div>
@@ -287,8 +302,8 @@ function dashboardKerja(view) {
         <div class="ri-sub">${esc(j.noRef)} · ${fmtTglPendek(j.tanggal)} ${fmtJam(j.dibuat)}</div></div>
       <div class="ri-right"><div class="ri-val">${rp(j.total)}</div></div>
     </div>`;
-  }).join('') : kosongState('🧾', 'Belum ada transaksi', 'Mulai penjualan pertama Anda.',
-    '<a class="btn btn-primary btn-sm" href="#/kasir">＋ Jual Sekarang</a>');
+  }).join('') : kosongState('🧾', 'Belum ada transaksi', bolehTransaksi() ? 'Mulai penjualan pertama Anda.' : '',
+    bolehTransaksi() ? '<a class="btn btn-primary btn-sm" href="#/kasir">＋ Jual Sekarang</a>' : '');
 
   pasangKlik(view);
   view.querySelector('#muatContoh')?.addEventListener('click', async () => {

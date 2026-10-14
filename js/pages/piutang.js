@@ -5,7 +5,7 @@ import { modalBayarPiutang, modalBayarHutang } from '../core/bayar.js';
 import { setJudul, setTopbar, setFab, sukses, gagal, kosongState, statTile, badge, avatarEl } from '../core/ui.js';
 import { tampilkanStruk } from '../core/struk.js';
 import { segarkan } from '../core/router.js';
-import { bolehKelola, bolehTransaksi, filterPenjualan } from '../core/peran.js';
+import { bolehLihatKas, bolehKeuangan, bolehTerimaBayar, filterPenjualan } from '../core/peran.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, selisihHari, groupBy, unduh, toCSV,
 } from '../core/utils.js';
@@ -22,8 +22,8 @@ const kelompokUmur = hari =>
 
 export function render(view) {
   const piutang = filterPenjualan(daftarPiutang());
-  const hutang = bolehKelola() ? daftarHutang() : [];
-  if (!bolehKelola() && f.tab === 'hutang') f.tab = 'piutang';
+  const hutang = bolehLihatKas() ? daftarHutang() : [];
+  if (!bolehLihatKas() && f.tab === 'hutang') f.tab = 'piutang';
 
   setJudul('Piutang & Hutang', `Piutang ${rp(totalPiutang())} · Hutang ${rp(totalHutang())}`);
   setTopbar([{ teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: ekspor }]);
@@ -34,17 +34,17 @@ export function render(view) {
 
   view.innerHTML = `
     <div class="grid g4 mb12">
-      ${statTile({ label: bolehKelola() ? 'Total Piutang' : 'Piutang', nilai: rp(sum(piutang, sisaPiutang)), sub: `${piutang.length} nota`, warna: 'bad', ikon: '📌' })}
+      ${statTile({ label: bolehLihatKas() ? 'Total Piutang' : 'Piutang', nilai: rp(sum(piutang, sisaPiutang)), sub: `${piutang.length} nota`, warna: 'bad', ikon: '📌' })}
       ${statTile({ label: 'Lewat Jatuh Tempo', nilai: rp(nilaiTempo), sub: `${jatuhTempo.length} nota`, warna: nilaiTempo > 0 ? 'bad' : 'ok', ikon: '⏰' })}
-      ${bolehKelola()
+      ${bolehLihatKas()
         ? statTile({ label: 'Total Hutang', nilai: rp(totalHutang()), sub: `${hutang.length} faktur`, warna: 'warn', ikon: '🏭' })
         : statTile({ label: 'Nota Lunas', nilai: num(filterPenjualan(db.penjualan).filter(j => j.status !== 'batal' && sisaPiutang(j) <= 0).length), sub: 'sudah dibayar', warna: 'ok', ikon: '✅' })}
-      ${bolehKelola()
+      ${bolehLihatKas()
         ? statTile({ label: 'Posisi Bersih', nilai: rp(totalPiutang() - totalHutang()), sub: 'piutang − hutang', warna: totalPiutang() - totalHutang() >= 0 ? 'ok' : 'bad', ikon: '⚖️' })
         : statTile({ label: 'Mitra Menunggak', nilai: num(new Set(piutang.map(j => j.mitraId)).size), sub: 'perlu ditagih', warna: 'warn', ikon: '🏪' })}
     </div>
 
-    ${bolehKelola() ? `<div class="seg mb12" id="segTab">
+    ${bolehLihatKas() ? `<div class="seg mb12" id="segTab">
       <button type="button" data-v="piutang" class="${f.tab === 'piutang' ? 'active' : ''}">📌 Piutang Mitra (${piutang.length})</button>
       <button type="button" data-v="hutang" class="${f.tab === 'hutang' ? 'active' : ''}">🏭 Hutang Supplier (${hutang.length})</button>
     </div>` : ''}
@@ -102,7 +102,7 @@ export function render(view) {
               </div>
               <div class="ri-right">
                 <div class="ri-val neg">${rp(sisaPiutang(j))}</div>
-                ${bolehTransaksi() ? `<button class="btn btn-xs btn-soft mt8" data-bayar="${j.id}">💵 Bayar</button>` : ''}
+                ${bolehTerimaBayar() ? `<button class="btn btn-xs btn-soft mt8" data-bayar="${j.id}">💵 Bayar</button>` : ''}
               </div>
             </div>`;
           }).join('')}
@@ -129,7 +129,7 @@ export function render(view) {
           </div>
           <div class="ri-right">
             <div class="ri-val neg">${rp(sisa)}</div>
-            <button class="btn btn-xs btn-soft mt8" data-bayarh="${b.id}">💵 Bayar</button>
+            ${bolehKeuangan() ? `<button class="btn btn-xs btn-soft mt8" data-bayarh="${b.id}">💵 Bayar</button>` : ''}
           </div>
         </div>`;
       }).join('')}
