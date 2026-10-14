@@ -1,23 +1,20 @@
 /* pages/komisi.js — perhitungan & pembayaran komisi sales */
 import { db, get } from '../core/store.js';
-import { rekapKomisi, komisiSales, komisiTertunda, bayarKomisi, SKEMA_KOMISI } from '../core/domain.js';
+import { rekapKomisi, komisiSales, komisiTertunda, bayarKomisi, tarifKomisi } from '../core/domain.js';
 import {
   setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, ingat, kosongState, statTile, badge, avatarEl,
 } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
 import { bolehKelola, adalah, salesAktif } from '../core/peran.js';
-import { esc, rp, num, toNum, sum, fmtTgl, fmtTglPendek, sortBy, todayISO, unduh, toCSV } from '../core/utils.js';
+import { esc, rp, num, sum, fmtTgl, fmtTglPendek, sortBy, todayISO, unduh, toCSV } from '../core/utils.js';
 
 let f = { kode: 'bulan', dari: todayISO(), sampai: todayISO(), status: 'semua' };
 
-const jelaskanSkema = s => {
-  const n = toNum(s?.nilai);
-  if (!s) return '-';
-  if (s.skema === 'nominal_unit') return `${rp(n)}/unit`;
-  if (s.skema === 'persen_laba') return `${num(n, 2)}% laba`;
-  return `${num(n, 2)}% omzet`;
-};
+const jelaskanKomisi = () => `${rp(tarifKomisi())}/unit`;
+
+// skema sebelum tarif rata — komisi lama tetap tercatat dengan skema aslinya
+const LABEL_SKEMA = { persen_omzet: '% dari omzet', persen_laba: '% dari laba kotor', nominal_unit: 'Rp per unit terjual' };
 
 /* =========================================================
    REKAP SELURUH SALES
@@ -46,8 +43,8 @@ function halamanRekap(view) {
       <div class="lbl-t">ℹ️ Cara kerja komisi</div>
       <div class="xs muted" style="line-height:1.7">
         Komisi dihitung otomatis saat penjualan tersimpan — termasuk penjualan konsinyasi ketika mitra melaporkan barang terjual
-        (bukan saat barang dititipkan). Bila produk memiliki nilai <b>komisi per unit</b> sendiri, nilai itu yang dipakai;
-        selain itu mengikuti skema masing-masing sales.
+        (bukan saat barang dititipkan). Semua sales mendapat <b>${rp(tarifKomisi())} per unit terjual</b>, termasuk
+        penjualan dengan harga promo.
       </div>
     </div></div>
 
@@ -57,7 +54,7 @@ function halamanRekap(view) {
   const box = view.querySelector('#daftar');
   if (!db.sales.length) {
     box.innerHTML = `<div class="card">${kosongState('👤', 'Belum ada sales',
-      'Tambahkan data sales beserta skema komisinya.',
+      'Tambahkan data sales untuk mulai menghitung komisi.',
       '<a class="btn btn-primary" href="#/sales">＋ Tambah Sales</a>')}</div>`;
   } else {
     box.innerHTML = rekap.map(r => {
@@ -68,7 +65,7 @@ function halamanRekap(view) {
           ${avatarEl(s.nama)}
           <div class="grow" style="min-width:130px">
             <h3 style="margin-bottom:2px">${esc(s.nama)} ${s.aktif === false ? badge('Nonaktif', 'bad') : ''}</h3>
-            <div class="xs muted">${esc(s.kode)} · ${esc(jelaskanSkema(s))}</div>
+            <div class="xs muted">${esc(s.kode)} · ${esc(jelaskanKomisi())}</div>
           </div>
           <div style="text-align:right">
             <div class="b" style="font-size:16px">${rp(r.total)}</div>
@@ -120,7 +117,7 @@ function halamanDetail(view, salesId) {
   const pending = komisiTertunda(s.id);
   const riwayatBayar = db.bayarKomisi.filter(b => b.salesId === s.id);
 
-  setJudul(`Komisi ${s.nama}`, `${label} · ${esc(jelaskanSkema(s))}`);
+  setJudul(`Komisi ${s.nama}`, `${label} · ${esc(jelaskanKomisi())}`);
   setTopbar(bolehKelola() ? [{ teks: 'Kembali', ikon: '←', kelas: 'btn-ghost btn-sm', onClick: () => pergi('komisi') }] : []);
   setFab(pending > 0 && bolehKelola() ? { ikon: '💵', teks: 'Bayar komisi', onClick: () => modalBayar(s) } : null);
 
@@ -283,7 +280,7 @@ function ekspor(dari, sampai, salesId = null) {
   unduh(`komisi-${todayISO()}.csv`, toCSV(arr.map(k => ({
     Tanggal: k.tanggal, Sales: get('sales', k.salesId)?.nama || '', NoNota: k.noRef || '',
     Mitra: get('mitra', k.mitraId)?.nama || '', Omzet: k.omzet, Laba: k.laba, Qty: k.qty,
-    Skema: SKEMA_KOMISI[k.skema]?.label || k.skema, NilaiSkema: k.nilaiSkema,
+    Skema: LABEL_SKEMA[k.skema] || k.skema, NilaiSkema: k.nilaiSkema,
     Komisi: k.nilai, Status: k.status, TanggalBayar: k.tglBayar || '',
   }))), 'text/csv');
   sukses('Data komisi diekspor');

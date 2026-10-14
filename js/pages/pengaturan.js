@@ -4,6 +4,7 @@ import { setJudul, setTopbar, setFab, formModal, konfirmasi, sukses, gagal, stat
 import { segarkan } from '../core/router.js';
 import { PERAN, peranAktif, namaPengguna, pinDipasang } from '../core/peran.js';
 import { dialogGantiPeran } from '../core/ganti-peran.js';
+import { tarifKomisi } from '../core/domain.js';
 import { terapkanTema } from '../app.js';
 import { esc, rp, num, unduh, todayISO } from '../core/utils.js';
 import { statusPenyimpanan, mintaPenyimpananTetap, onJaringan, onBisaDipasang,
@@ -278,6 +279,7 @@ function formTransaksi() {
     fields: [
       { name: 'saldoAwalKas', label: 'Saldo Awal Kas', tipe: 'rupiah', hint: 'Uang kas sebelum aplikasi dipakai' },
       { name: 'tempoDefault', label: 'Tempo Kredit Default (hari)', tipe: 'number', min: 0 },
+      { name: 'komisiPerUnit', label: 'Komisi Sales per Unit Terjual', tipe: 'rupiah', hint: 'Berlaku untuk semua sales & produk. Isi 0 bila tanpa komisi' },
       { name: 'peringatanStok', label: 'Tampilkan peringatan stok menipis', tipe: 'check', lebar: 'full' },
     ],
     data: db.pengaturan,
@@ -359,6 +361,7 @@ export function render(view) {
       <div class="card-body">
         <div class="kv"><span class="k">Saldo awal kas</span><span class="v">${rp(p.saldoAwalKas)}</span></div>
         <div class="kv"><span class="k">Tempo kredit default</span><span class="v">${num(p.tempoDefault)} hari</span></div>
+        <div class="kv"><span class="k">Komisi sales</span><span class="v">${rp(tarifKomisi())} per unit terjual</span></div>
         <div class="kv"><span class="k">Peringatan stok menipis</span><span class="v">${p.peringatanStok === false ? 'Nonaktif' : 'Aktif'}</span></div>
       </div>
     </div>

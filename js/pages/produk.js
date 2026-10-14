@@ -21,7 +21,7 @@ const fields = [
   { name: 'hargaAgen', label: 'Harga Agen', tipe: 'rupiah', wajib: true },
   { name: 'hargaReseller', label: 'Harga Reseller', tipe: 'rupiah', wajib: true },
   { name: 'hargaEcer', label: 'Harga Ecer/Umum', tipe: 'rupiah' },
-  { name: 'komisiUnit', label: 'Komisi Sales /unit', tipe: 'rupiah', hint: 'Kosongkan bila mengikuti skema sales' },
+  { name: 'hargaPromo', label: 'Harga Promo', tipe: 'rupiah', hint: 'Dipakai saat Harga Promo dipilih di Penjualan Baru. Kosongkan bila tidak ada promo' },
   { name: 'minStok', label: 'Stok Minimum', tipe: 'number', min: 0, hint: 'Peringatan bila stok ≤ nilai ini' },
   { name: 'aktif', label: 'Produk aktif dijual', tipe: 'check', nilai: true, lebar: 'full' },
 ];
@@ -36,7 +36,8 @@ function formProduk(data = null) {
       const kodeDipakai = db.produk.some(p =>
         p.kode.toLowerCase() === nilai.kode.toLowerCase() && p.id !== data?.id);
       if (kodeDipakai) { gagal(`Kode "${nilai.kode}" sudah dipakai produk lain`); return false; }
-      if (toNum(nilai.hargaReseller) < toNum(nilai.hargaBeli) || toNum(nilai.hargaAgen) < toNum(nilai.hargaBeli))
+      if (toNum(nilai.hargaReseller) < toNum(nilai.hargaBeli) || toNum(nilai.hargaAgen) < toNum(nilai.hargaBeli) ||
+        (toNum(nilai.hargaPromo) > 0 && toNum(nilai.hargaPromo) < toNum(nilai.hargaBeli)))
         ingat('Perhatian: ada harga jual di bawah harga beli');
 
       if (data) { update('produk', data.id, nilai); sukses('Produk diperbarui'); }
@@ -69,10 +70,10 @@ function detailProduk(p) {
         : `
           <div class="kv"><span class="k">Harga Agen</span><span class="v">${rp(p.hargaAgen)}${bolehLihatModal() ? ` <span class="xs pos">(+${rp(marginAgen)})</span>` : ''}</span></div>
           <div class="kv"><span class="k">Harga Reseller</span><span class="v">${rp(p.hargaReseller)}${bolehLihatModal() ? ` <span class="xs pos">(+${rp(marginRes)})</span>` : ''}</span></div>
-          ${toNum(p.hargaEcer) ? `<div class="kv"><span class="k">Harga Ecer</span><span class="v">${rp(p.hargaEcer)}</span></div>` : ''}`}
+          ${toNum(p.hargaEcer) ? `<div class="kv"><span class="k">Harga Ecer</span><span class="v">${rp(p.hargaEcer)}</span></div>` : ''}
+          ${toNum(p.hargaPromo) ? `<div class="kv"><span class="k">Harga Promo</span><span class="v">${rp(p.hargaPromo)}</span></div>` : ''}`}
         <div class="kv"><span class="k">Isi per ${p.satuan || 'satuan'}</span><span class="v">${num(p.isiPerSatuan) || '-'} bungkus${p.isi ? ` &middot; ${esc(p.isi)}` : ''}</span></div>
         ${bolehLihatModal() ? `
-          <div class="kv"><span class="k">Komisi sales /unit</span><span class="v">${toNum(p.komisiUnit) ? rp(p.komisiUnit) : '— ikut skema sales'}</span></div>
           <div class="kv"><span class="k">Stok minimum</span><span class="v">${num(p.minStok)}</span></div>
           <div class="kv"><span class="k">Nilai persediaan</span><span class="v">${rp(toNum(p.stok) * toNum(p.hargaBeli))}</span></div>` : ''}
       </div></div>`,

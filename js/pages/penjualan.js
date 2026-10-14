@@ -22,7 +22,8 @@ function daftar() {
     (!dari || j.tanggal >= dari) && (!sampai || j.tanggal <= sampai));
 
   if (f.status !== 'batal') arr = arr.filter(j => j.status !== 'batal');
-  if (f.jenis !== 'semua') arr = arr.filter(j => (j.jenis || 'putus') === f.jenis);
+  if (f.jenis === 'promo') arr = arr.filter(j => j.promo);
+  else if (f.jenis !== 'semua') arr = arr.filter(j => (j.jenis || 'putus') === f.jenis);
   if (f.status === 'lunas') arr = arr.filter(j => sisaPiutang(j) <= 0);
   if (f.status === 'piutang') arr = arr.filter(j => sisaPiutang(j) > 0);
   if (f.status === 'batal') arr = arr.filter(j => j.status === 'batal');
@@ -44,6 +45,7 @@ function detail(j) {
       <div class="flex flex-wrap mb12">
         ${badge(fmtTgl(j.tanggal))}
         ${badge(j.jenis === 'konsinyasi' ? 'Konsinyasi' : 'Putus', j.jenis === 'konsinyasi' ? 'violet' : 'info')}
+        ${j.promo ? badge('Harga Promo', 'warn') : ''}
         ${dibatalkan ? badge('DIBATALKAN', 'bad')
           : badge(st === 'lunas' ? 'Lunas' : st === 'sebagian' ? 'Bayar Sebagian' : 'Belum Bayar',
                   st === 'lunas' ? 'ok' : st === 'sebagian' ? 'warn' : 'bad')}
@@ -164,7 +166,7 @@ export function render(view) {
       ${htmlPeriode(f.kode, f)}
     </div>
     <div class="chips mb12" id="chipJenis">
-      ${[['semua', 'Semua'], ['putus', 'Putus'], ['konsinyasi', 'Konsinyasi']]
+      ${[['semua', 'Semua'], ['putus', 'Putus'], ['konsinyasi', 'Konsinyasi'], ['promo', 'Promo']]
         .map(([v, t]) => `<button class="chip ${f.jenis === v ? 'active' : ''}" data-j="${v}">${t}</button>`).join('')}
       <span style="width:6px"></span>
       ${[['semua', 'Semua status'], ['lunas', 'Lunas'], ['piutang', 'Piutang'], ['batal', 'Dibatalkan']]
@@ -207,6 +209,7 @@ export function render(view) {
           <div class="ri-title">${esc(j.mitraNama)}
             ${st === 'batal' ? badge('Batal', 'bad') : st === 'lunas' ? badge('Lunas', 'ok') : badge(st === 'sebagian' ? 'Sebagian' : 'Piutang', 'warn')}
             ${j.jenis === 'konsinyasi' ? badge('Konsinyasi', 'violet') : ''}
+            ${j.promo ? badge('Promo', 'warn') : ''}
           </div>
           <div class="ri-sub">${esc(j.noRef)} · ${fmtTglPendek(j.tanggal)} · ${j.items.length} item · ${num(sum(j.items, i => i.qty))} unit${
             `<span class="tanda-setor" data-setor="${j.id}"></span>`}</div>

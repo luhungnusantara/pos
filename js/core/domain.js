@@ -86,58 +86,33 @@ export const nilaiPersediaan = () => sum(db.produk, p => toNum(p.stok) * toNum(p
    2. HARGA & KOMISI
    ========================================================= */
 
-/** harga jual sesuai tipe mitra */
-export function hargaUntuk(produk, mitra) {
+/**
+ * Harga jual sesuai tipe mitra.
+ * promo: pakai harga promo produk bila ada; produk tanpa harga promo tetap harga normal.
+ */
+export function hargaUntuk(produk, mitra, { promo = false } = {}) {
   if (!produk) return 0;
+  if (promo && toNum(produk.hargaPromo) > 0) return toNum(produk.hargaPromo);
   const tipe = typeof mitra === 'string' ? mitra : mitra?.tipe;
   if (tipe === 'agen') return toNum(produk.hargaAgen) || toNum(produk.hargaReseller);
   if (tipe === 'reseller') return toNum(produk.hargaReseller) || toNum(produk.hargaAgen);
   return toNum(produk.hargaEcer) || toNum(produk.hargaReseller) || toNum(produk.hargaAgen);
 }
 
-export const SKEMA_KOMISI = {
-  persen_omzet: { label: '% dari omzet', satuan: '%' },
-  persen_laba: { label: '% dari laba kotor', satuan: '%' },
-  nominal_unit: { label: 'Rp per unit terjual', satuan: 'Rp' },
-};
+/** komisi sales dalam Rp per unit terjual — satu tarif untuk semua sales & produk */
+export const tarifKomisi = () => toNum(db.pengaturan.komisiPerUnit ?? 300);
 
 /**
- * Hitung komisi satu transaksi penjualan.
- * Prioritas: komisi per unit yang disetel pada produk → skema milik sales.
- * items: [{produkId, qty, harga, hargaBeli, diskon?}]
+ * Hitung komisi satu transaksi penjualan: tarif × jumlah unit terjual.
+ * Harga jual (termasuk harga promo) dan diskon tidak memengaruhi komisi.
+ * items: [{produkId, qty}]
  */
-export function hitungKomisi(sales, items, { diskonNota = 0 } = {}) {
+export function hitungKomisi(sales, items) {
   if (!sales) return { nilai: 0, rincian: [] };
-  const skema = sales.skema || 'persen_omzet';
-  const nilaiSkema = toNum(sales.nilai);
-  const bruto = sum(items, i => toNum(i.qty) * toNum(i.harga));
-  const rasio = bruto > 0 ? 1 - toNum(diskonNota) / bruto : 1; // diskon nota dialokasikan proporsional
-
-  const rincian = items.map(i => {
-    const p = get('produk', i.produkId);
-    const qty = toNum(i.qty);
-    const omzet = round2(qty * toNum(i.harga) * rasio);
-    const hpp = qty * toNum(i.hargaBeli ?? p?.hargaBeli);
-    const laba = round2(omzet - hpp);
-    const perUnit = toNum(p?.komisiUnit);
-
-    let nilai = 0, dasar = '';
-    if (perUnit > 0) {
-      nilai = round2(perUnit * qty);
-      dasar = `Rp${perUnit}/unit (produk)`;
-    } else if (skema === 'nominal_unit') {
-      nilai = round2(nilaiSkema * qty);
-      dasar = `Rp${nilaiSkema}/unit`;
-    } else if (skema === 'persen_laba') {
-      nilai = round2(Math.max(0, laba) * nilaiSkema / 100);
-      dasar = `${nilaiSkema}% laba`;
-    } else {
-      nilai = round2(omzet * nilaiSkema / 100);
-      dasar = `${nilaiSkema}% omzet`;
-    }
-    return { produkId: i.produkId, qty, omzet, laba, nilai, dasar };
-  });
-
+  const tarif = tarifKomisi();
+  const rincian = items.map(i => ({
+    produkId: i.produkId, qty: toNum(i.qty), nilai: round2(tarif * toNum(i.qty)),
+  }));
   return { nilai: round2(sum(rincian, r => r.nilai)), rincian };
 }
 
@@ -467,6 +442,7 @@ export function simpanPenjualan(data, { luarBatch = false } = {}) {
       salesId: data.salesId || mitra?.salesId || '',
       items, subtotal, diskon, total, hpp,
       laba: round2(total - hpp),
+      promo: !!data.promo, // dijual dengan harga promo
       bayar: data.bayar || 'tunai',
       metode: data.metode || 'tunai',
       dibayar,
@@ -497,14 +473,14 @@ export function simpanPenjualan(data, { luarBatch = false } = {}) {
     // komisi sales
     const sales = trx.salesId ? get('sales', trx.salesId) : null;
     if (sales) {
-      const { nilai, rincian } = hitungKomisi(sales, items, { diskonNota: diskon });
+      const { nilai, rincian } = hitungKomisi(sales, items);
       if (nilai > 0) {
         db.komisi.unshift({
           id: uid('kom_'), dibuat: nowISO(),
           tanggal: trx.tanggal, salesId: sales.id, penjualanId: trx.id, noRef: trx.noRef,
           mitraId: trx.mitraId, omzet: total, laba: trx.laba,
           qty: sum(items, i => i.qty),
-          skema: sales.skema, nilaiSkema: toNum(sales.nilai),
+          skema: 'nominal_unit', nilaiSkema: tarifKomisi(),
           nilai, rincian, status: 'pending', bayarId: '',
         });
       }
@@ -687,6 +663,7 @@ export function ringkasan(dari = null, sampai = null) {
     kasKeluar: round2(sum(kas.filter(k => k.arah === 'keluar'), k => k.jumlah)),
     konsinyasi: round2(sum(jual.filter(j => j.jenis === 'konsinyasi'), j => j.total)),
     putus: round2(sum(jual.filter(j => j.jenis !== 'konsinyasi'), j => j.total)),
+    promo: round2(sum(jual.filter(j => j.promo), j => j.total)),
   };
 }
 

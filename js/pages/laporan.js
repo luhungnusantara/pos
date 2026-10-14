@@ -72,6 +72,7 @@ function tabRingkas(dari, sampai, label) {
         <div class="card-body">
           <div class="kv"><span class="k">Penjualan putus</span><span class="v">${rp(r.putus)}</span></div>
           <div class="kv"><span class="k">Hasil konsinyasi</span><span class="v">${rp(r.konsinyasi)}</span></div>
+          ${r.promo ? `<div class="kv"><span class="k">Dengan harga promo</span><span class="v">${rp(r.promo)}</span></div>` : ''}
           <div class="kv"><span class="k">Dibayar tunai/transfer</span><span class="v pos">${rp(r.tunai)}</span></div>
           <div class="kv"><span class="k">Kredit / tempo</span><span class="v neg">${rp(r.kredit)}</span></div>
         </div>

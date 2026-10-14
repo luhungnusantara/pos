@@ -44,9 +44,10 @@ Aplikasi akan terbuka layar penuh seperti aplikasi biasa dan tetap dapat dibuka 
 
 ### 1. Persiapan
 `Data Produk` → isi rokok beserta **harga beli, harga agen, harga reseller, harga ecer**,
-stok minimum, dan (opsional) komisi per unit.
+stok minimum, dan (opsional) **harga promo**.
 `Agen & Reseller` → daftarkan mitra, tipe (agen/reseller), plafon kredit, tempo, dan sales penanggung jawab.
-`Data Sales` → pilih skema komisi tiap sales.
+`Data Sales` → daftarkan sales beserta target omzetnya. Tarif komisi diatur sekali untuk semua
+sales di `Pengaturan → Preferensi Transaksi`.
 
 ### 2. Stok masuk
 `Pembelian / Stok Masuk` → catat faktur dari supplier. Stok gudang bertambah, harga beli
@@ -56,6 +57,12 @@ diperbarui otomatis, dan pembayaran tercatat sebagai kas keluar (tunai) atau hut
 `Penjualan Baru` → pilih pelanggan (harga menyesuaikan tipe mitra secara otomatis), tambahkan
 produk, tentukan diskon, lalu bayar **tunai** atau **kredit/tempo**. Aplikasi memperingatkan bila
 stok kurang atau plafon kredit mitra terlampaui. Nota bisa dicetak atau dibagikan via WhatsApp.
+
+**Harga promo.** Di kartu Pembayaran, pilih **Harga → 🏷️ Promo** untuk menjual dengan harga promo
+yang diisi di Data Produk. Produk yang tidak punya harga promo tetap memakai harga normal (aplikasi
+menyebutkan berapa produk yang begitu). Pelanggan tetap membayar tunai atau kredit seperti biasa.
+Nota promo ditandai **PROMO** di nota cetak/WhatsApp, diberi lencana di Riwayat Penjualan, bisa
+disaring lewat chip **Promo**, dan totalnya tampil di Laporan sebagai *Dengan harga promo*.
 
 ### 4. Konsinyasi (barang titipan)
 `Konsinyasi` → **Titip Barang**: stok keluar dari gudang, tetapi **belum dihitung sebagai penjualan**.
@@ -287,17 +294,19 @@ dikembalikan ke mode Pemilik oleh orang lain.
 Komisi dihitung **otomatis saat penjualan tersimpan**, termasuk penjualan konsinyasi — yaitu ketika
 mitra melaporkan barang terjual, **bukan** ketika barang dititipkan.
 
-Tersedia tiga skema per sales:
+Rumusnya satu untuk semua sales dan semua produk:
 
-| Skema | Rumus |
-|---|---|
-| `% dari omzet` | persen × nilai penjualan (setelah diskon) |
-| `% dari laba kotor` | persen × (penjualan − harga beli) — aman untuk margin tipis |
-| `Rp per unit` | nominal × jumlah unit terjual |
+```
+komisi = tarif × jumlah unit terjual        (tarif bawaan Rp300)
+```
 
-Bila sebuah **produk** memiliki nilai *Komisi /unit* sendiri, nilai produk itu yang dipakai untuk
-baris tersebut (berguna untuk produk fokus/promo). Diskon nota dialokasikan proporsional ke setiap
-baris agar komisi tidak dihitung berlebih.
+- **Unit** mengikuti satuan jual produk — angka jumlah yang diketik di kasir (mis. Slop).
+- Harga jual, harga promo, dan diskon nota **tidak memengaruhi** komisi; yang dihitung hanya unitnya.
+- Tarif diubah pemilik lewat `Pengaturan → Preferensi Transaksi → Komisi Sales per Unit Terjual`.
+  Isi `0` bila tidak ada komisi. Perubahan tarif hanya berlaku untuk penjualan **berikutnya** —
+  komisi yang sudah tercatat tidak dihitung ulang.
+- Komisi yang tercatat sebelum tarif rata ini berlaku tetap menyimpan skema lamanya
+  (`% dari omzet`, `% dari laba kotor`, `Rp per unit`), dan tetap terbaca di ekspor CSV.
 
 ---
 

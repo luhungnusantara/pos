@@ -21,6 +21,7 @@ const baru = () => ({
   salesId: '',
   items: [],
   diskon: 0,
+  promo: false,
   bayar: 'tunai',
   metode: 'tunai',
   dibayar: 0,
@@ -29,6 +30,9 @@ const baru = () => ({
 });
 
 const mitraAktif = () => (trx.mitraId ? get('mitra', trx.mitraId) : null);
+const hargaItem = p => hargaUntuk(p, mitraAktif(), { promo: trx.promo });
+const hargaUlang = () => trx.items.forEach(i => { i.harga = hargaItem(get('produk', i.produkId)); });
+const pakaiPromo = i => trx.promo && toNum(i.harga) === toNum(get('produk', i.produkId)?.hargaPromo);
 const subtotal = () => round2(sum(trx.items, i => toNum(i.qty) * toNum(i.harga)));
 const total = () => round2(Math.max(0, subtotal() - toNum(trx.diskon)));
 const labaEstimasi = () => round2(total() - sum(trx.items, i => toNum(i.qty) * toNum(get('produk', i.produkId)?.hargaBeli)));
@@ -58,7 +62,7 @@ async function pilihMitra() {
   trx.salesId = m.salesId || trx.salesId;
   if (m.tempoHari) trx.jatuhTempo = tambahHari(trx.tanggal, toNum(m.tempoHari));
   // sesuaikan harga item ke tipe mitra baru
-  trx.items.forEach(i => { i.harga = hargaUntuk(get('produk', i.produkId), m); });
+  hargaUlang();
   gambar();
 }
 
@@ -71,7 +75,8 @@ function modalProduk() {
       <div class="toolbar" style="margin-bottom:10px">
         <div class="search-wrap grow"><input class="input" id="cariP" placeholder="Cari nama / kode produk..." autocomplete="off"></div>
       </div>
-      <div class="hint mb8">Harga mengikuti tipe pelanggan: <b>${mitra ? (mitra.tipe === 'agen' ? 'Agen' : 'Reseller') : 'Umum/Ecer'}</b></div>
+      <div class="hint mb8">Harga mengikuti tipe pelanggan: <b>${mitra ? (mitra.tipe === 'agen' ? 'Agen' : 'Reseller') : 'Umum/Ecer'}</b>${
+        trx.promo ? ' · <b>harga promo</b> bila produk punya' : ''}</div>
       <div class="card"><div class="list" id="listP"></div></div>`,
     tombol: [{ teks: 'Selesai', kelas: 'btn-primary', aksi: x => x.tutup() }],
     onTutup: () => gambar(),
@@ -88,11 +93,11 @@ function modalProduk() {
     listP.innerHTML = arr.map(p => {
       const di = trx.items.find(i => i.produkId === p.id);
       const stok = stokGudang(p.id);
-      const harga = hargaUntuk(p, mitra);
+      const harga = hargaItem(p);
       return `<div class="row-item" data-p="${p.id}">
         <div class="avatar ${stok <= 0 ? 'w' : ''}">${esc(p.kode.slice(0, 3))}</div>
         <div class="ri-main">
-          <div class="ri-title">${esc(p.nama)} ${stok <= 0 ? badge('Stok habis', 'bad') : ''}</div>
+          <div class="ri-title">${esc(p.nama)} ${trx.promo && toNum(p.hargaPromo) > 0 ? badge('Promo', 'warn') : ''} ${stok <= 0 ? badge('Stok habis', 'bad') : ''}</div>
           <div class="ri-sub">${rp(harga)} / ${esc(p.satuan || 'Slop')} · stok ${num(stok)}</div>
         </div>
         <div class="ri-right">
@@ -120,7 +125,7 @@ function modalProduk() {
     const add = e.target.closest('[data-add]');
     if (add) {
       const p = get('produk', add.dataset.add);
-      trx.items.push({ produkId: p.id, qty: 1, harga: hargaUntuk(p, mitraAktif()) });
+      trx.items.push({ produkId: p.id, qty: 1, harga: hargaItem(p) });
       gambarList(h.body.querySelector('#cariP').value);
       return;
     }
@@ -264,6 +269,7 @@ function gambar() {
   const t = total();
   const sisa = round2(t - (trx.bayar === 'tunai' ? t : Math.min(toNum(trx.dibayar), t)));
   const kembali = trx.bayar === 'tunai' ? round2(toNum(trx.dibayar) - t) : 0;
+  const tanpaPromo = trx.promo ? trx.items.filter(i => !(toNum(get('produk', i.produkId)?.hargaPromo) > 0)).length : 0;
 
   el.innerHTML = `
   <div class="trx-layout">
@@ -308,7 +314,7 @@ function gambar() {
             const kurang = toNum(i.qty) > stok;
             return `<div class="cart-line">
               <div class="cl-main">
-                <div class="cl-name">${esc(p?.nama || '-')} ${kurang ? badge('stok ' + num(stok), 'bad') : ''}</div>
+                <div class="cl-name">${esc(p?.nama || '-')} ${pakaiPromo(i) ? badge('Promo', 'warn') : ''} ${kurang ? badge('stok ' + num(stok), 'bad') : ''}</div>
                 <div class="cl-meta">${rp(i.harga)} / ${esc(p?.satuan || 'unit')}</div>
                 <div class="mt8"><div class="stepper" style="width:132px" data-idx="${idx}">
                   <button type="button" data-d="-1">−</button>
@@ -333,7 +339,14 @@ function gambar() {
       <div class="card">
         <div class="card-head"><h2>💳 Pembayaran</h2></div>
         <div class="card-body">
-          <div class="kv"><span class="k">Subtotal</span><span class="v" id="nSubtotal">${rp(sub)}</span></div>
+          <div class="lbl-t">Harga</div>
+          <div class="seg" id="segHarga">
+            <button type="button" data-v="normal" class="${trx.promo ? '' : 'active'}">Normal</button>
+            <button type="button" data-v="promo" class="${trx.promo ? 'active' : ''}">🏷️ Promo</button>
+          </div>
+          ${tanpaPromo ? `<div class="hint mt8">${tanpaPromo} produk belum punya harga promo, tetap memakai harga normal.</div>` : ''}
+
+          <div class="kv mt12"><span class="k">Subtotal</span><span class="v" id="nSubtotal">${rp(sub)}</span></div>
           <div class="field mt8"><label>Diskon Nota</label>
             <input class="input num" id="inpDiskon" inputmode="numeric" data-rupiah value="${trx.diskon ? num(trx.diskon) : ''}" placeholder="0"></div>
           <div class="kv total"><span class="k">TOTAL</span><span class="v" id="nTotal">${rp(t)}</span></div>
@@ -400,6 +413,13 @@ function ikat() {
   q('#inpDiskon').addEventListener('nilai', e => { trx.diskon = e.detail; perbaruiAngka(); });
   q('#inpBayar').addEventListener('nilai', e => { trx.dibayar = e.detail; perbaruiAngka(); });
 
+  q('#segHarga').onclick = e => {
+    const b = e.target.closest('[data-v]'); if (!b) return;
+    trx.promo = b.dataset.v === 'promo';
+    hargaUlang();
+    gambar();
+  };
+
   q('#segBayar').onclick = e => {
     const b = e.target.closest('[data-v]'); if (!b) return;
     trx.bayar = b.dataset.v;
@@ -445,7 +465,7 @@ export function render(view, params = []) {
       trx.mitraId = m.id;
       trx.salesId = m.salesId || '';
       trx.jatuhTempo = tambahHari(trx.tanggal, toNum(m.tempoHari) || 14);
-      trx.items.forEach(i => { i.harga = hargaUntuk(get('produk', i.produkId), m); });
+      hargaUlang();
     }
   }
 

@@ -1,6 +1,6 @@
-/* pages/sales.js — master sales & skema komisi */
+/* pages/sales.js — master sales */
 import { db, add, update, remove, get } from '../core/store.js';
-import { SKEMA_KOMISI, rekapKomisi, komisiTertunda, komisiSales, penjualanAktif } from '../core/domain.js';
+import { tarifKomisi, rekapKomisi, komisiTertunda, komisiSales, penjualanAktif } from '../core/domain.js';
 import {
   setJudul, setTopbar, setFab, formModal, konfirmasi, sukses, gagal, kosongState, statTile, badge, modal, avatarEl,
 } from '../core/ui.js';
@@ -17,35 +17,23 @@ const fields = [
   { name: 'kode', label: 'Kode Sales', wajib: true, placeholder: 'SLS-01' },
   { name: 'nama', label: 'Nama Sales', wajib: true, placeholder: 'Budi Santoso' },
   { name: 'telp', label: 'No. HP', tipe: 'tel' },
-  {
-    name: 'skema', label: 'Skema Komisi', tipe: 'select', wajib: true, lebar: 'full',
-    opsi: Object.entries(SKEMA_KOMISI).map(([v, o]) => ({ value: v, label: o.label })),
-  },
-  { name: 'nilai', label: 'Nilai Komisi', tipe: 'number', min: 0, step: 'any', wajib: true, hint: 'Isi 2 untuk 2%, atau 2000 untuk Rp2.000/unit' },
   { name: 'target', label: 'Target Omzet /bulan', tipe: 'rupiah', hint: 'Opsional, untuk memantau capaian' },
   { name: 'aktif', label: 'Sales aktif', tipe: 'check', nilai: true, lebar: 'full' },
 ];
 
-const jelaskanSkema = s => {
-  const n = toNum(s.nilai);
-  if (s.skema === 'nominal_unit') return `${rp(n)} per unit terjual`;
-  if (s.skema === 'persen_laba') return `${num(n, 2)}% dari laba kotor`;
-  return `${num(n, 2)}% dari omzet`;
-};
+const jelaskanKomisi = () => `${rp(tarifKomisi())} per unit terjual`;
 
 function formSales(data = null) {
   formModal({
     judul: data ? 'Ubah Sales' : 'Sales Baru',
     fields, lebar: 'wide',
-    data: data || { skema: 'persen_omzet', nilai: 2, aktif: true },
+    data: data || { aktif: true },
     extra: `<div class="card mt8"><div class="card-body">
       <div class="lbl-t">ℹ️ Cara komisi dihitung</div>
-      <ul class="sm muted" style="margin:0;padding-left:18px;line-height:1.7">
-        <li><b>% dari omzet</b> — komisi = persentase × nilai penjualan (setelah diskon).</li>
-        <li><b>% dari laba kotor</b> — komisi = persentase × (penjualan − harga beli). Aman untuk margin tipis.</li>
-        <li><b>Rp per unit</b> — komisi = nominal × jumlah unit terjual.</li>
-        <li>Bila sebuah produk punya <b>Komisi /unit</b> sendiri, nilai produk itu yang dipakai.</li>
-      </ul>
+      <div class="sm muted" style="line-height:1.7">
+        Semua sales mendapat <b>${esc(jelaskanKomisi())}</b>, termasuk penjualan dengan harga promo.
+        Tarifnya diubah lewat <b>Pengaturan → Preferensi Transaksi</b>.
+      </div>
     </div></div>`,
     onSimpan: nilai => {
       if (db.sales.some(s => s.kode.toLowerCase() === nilai.kode.toLowerCase() && s.id !== data?.id)) {
@@ -70,7 +58,7 @@ function detailSales(s) {
     judul: s.nama, lebar: 'wide',
     isi: `
       <div class="flex flex-wrap mb12">
-        ${badge(s.kode)} ${badge(jelaskanSkema(s), 'info')} ${s.aktif === false ? badge('Nonaktif', 'bad') : badge('Aktif', 'ok')}
+        ${badge(s.kode)} ${badge(jelaskanKomisi(), 'info')} ${s.aktif === false ? badge('Nonaktif', 'bad') : badge('Aktif', 'ok')}
       </div>
       <div class="grid g2 mb12">
         ${statTile({ label: `Omzet (${label})`, nilai: rp(omzet), sub: `${trx.length} transaksi`, warna: 'ok' })}
@@ -83,7 +71,7 @@ function detailSales(s) {
           <div class="hint">${rp(omzet)} dari target ${rp(s.target)}</div>
         </div></div>` : ''}
       <div class="card mb12"><div class="card-body">
-        <div class="kv"><span class="k">Skema komisi</span><span class="v">${esc(jelaskanSkema(s))}</span></div>
+        <div class="kv"><span class="k">Komisi</span><span class="v">${esc(jelaskanKomisi())}</span></div>
         <div class="kv"><span class="k">Komisi periode ini</span><span class="v">${rp(sum(kom, k => k.nilai))}</span></div>
         <div class="kv"><span class="k">Sudah dibayar</span><span class="v pos">${rp(sum(kom.filter(k => k.status === 'dibayar'), k => k.nilai))}</span></div>
         <div class="kv"><span class="k">Mitra binaan</span><span class="v">${binaan.length} mitra</span></div>
@@ -165,7 +153,7 @@ export function render(view) {
         <div class="ri-main">
           <div class="ri-title">${esc(s.nama)} ${s.aktif === false ? badge('Nonaktif', 'bad') : ''}
             ${r.pending > 0 ? badge(rp(r.pending) + ' pending', 'warn') : ''}</div>
-          <div class="ri-sub">${esc(jelaskanSkema(s))} · ${r.trx} trx · omzet ${rp(r.omzet)}</div>
+          <div class="ri-sub">${esc(jelaskanKomisi())} · ${r.trx} trx · omzet ${rp(r.omzet)}</div>
           ${r.capaian != null ? `<div class="bar" style="max-width:220px"><i class="${r.capaian >= 100 ? 'ok' : r.capaian >= 60 ? '' : 'warn'}" style="width:${Math.min(100, r.capaian)}%"></i></div>` : ''}
         </div>
         <div class="ri-right">

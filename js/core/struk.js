@@ -19,6 +19,7 @@ export function htmlStruk(jual) {
     <div class="r-row"><span>Pelanggan</span><span>${esc(jual.mitraNama)}</span></div>
     <div class="r-row"><span>Tipe</span><span>${jual.tipeMitra === 'agen' ? 'Agen' : jual.tipeMitra === 'reseller' ? 'Reseller' : 'Umum'}</span></div>
     ${sales ? `<div class="r-row"><span>Sales</span><span>${esc(sales.nama)}</span></div>` : ''}
+    ${jual.promo ? '<div class="r-row r-b"><span>Harga</span><span>PROMO</span></div>' : ''}
     <div class="r-line"></div>
     ${jual.items.map(i => {
       const pr = get('produk', i.produkId);
@@ -65,7 +66,7 @@ export function teksStruk(jual) {
   return `*${p.namaToko || 'LUHUNG NUSANTARA'}*
 Nota: ${jual.noRef}
 Tanggal: ${fmtTgl(jual.tanggal)}
-Pelanggan: ${jual.mitraNama}
+Pelanggan: ${jual.mitraNama}${jual.promo ? '\nHarga: PROMO' : ''}
 
 ${baris}
 

@@ -12,11 +12,11 @@ const acakInt = (a, b) => a + Math.floor(acak() * (b - a + 1));
 const ambil = arr => arr[acakInt(0, arr.length - 1)];
 
 const PRODUK = [
-  // kode, nama, isi, merk, hargaBeli, hargaAgen, hargaReseller, hargaEcer, komisiUnit, minStok
-  ['SM16', 'Sampoerna A Mild', '16 batang', 'Sampoerna', 335000, 348500, 355000, 375000, 1500, 20],
+  // kode, nama, isi, merk, hargaBeli, hargaAgen, hargaReseller, hargaEcer, hargaPromo, minStok
+  ['SM16', 'Sampoerna A Mild', '16 batang', 'Sampoerna', 335000, 348500, 355000, 375000, 342000, 20],
   ['GGF12', 'Gudang Garam Filter Intl', '12 batang', 'Gudang Garam', 235000, 244500, 249000, 265000, 0, 24],
   ['DJS16', 'Djarum Super', '16 batang', 'Djarum', 300000, 312000, 318000, 335000, 0, 20],
-  ['MRB20', 'Marlboro Merah', '20 batang', 'Philip Morris', 390000, 405500, 413500, 435000, 2000, 14],
+  ['MRB20', 'Marlboro Merah', '20 batang', 'Philip Morris', 390000, 405500, 413500, 435000, 398000, 14],
   ['LAB16', 'LA Bold', '16 batang', 'Djarum', 265000, 275500, 281000, 297000, 0, 16],
   ['SRY12', 'Surya 12', '12 batang', 'Gudang Garam', 290000, 301500, 307500, 325000, 0, 16],
   ['DJ76', 'Djarum 76', '12 batang', 'Djarum', 215000, 223500, 228000, 242000, 0, 16],
@@ -39,9 +39,9 @@ const MITRA = [
 ];
 
 const SALES = [
-  ['SLS-01', 'Budi Santoso', '081298760001', 'persen_omzet', 2, 150000000],
-  ['SLS-02', 'Siti Rahmawati', '081298760002', 'persen_laba', 25, 100000000],
-  ['SLS-03', 'Agus Prasetyo', '081298760003', 'nominal_unit', 2000, 80000000],
+  ['SLS-01', 'Budi Santoso', '081298760001', 150000000],
+  ['SLS-02', 'Siti Rahmawati', '081298760002', 100000000],
+  ['SLS-03', 'Agus Prasetyo', '081298760003', 80000000],
 ];
 
 export function isiContoh() {
@@ -57,21 +57,22 @@ export function isiContoh() {
       telp: '0812-3456-7890',
       saldoAwalKas: 60000000,
       tempoDefault: 14,
+      komisiPerUnit: 300,
     };
 
-    PRODUK.forEach(([kode, nama, isi, merk, hb, ha, hr, he, kom, min], i) => {
+    PRODUK.forEach(([kode, nama, isi, merk, hb, ha, hr, he, promo, min], i) => {
       db.produk.push({
         id: `prd_${kode.toLowerCase()}`, dibuat: nowISO(),
         kode, nama, merk, isi, satuan: 'Slop', isiPerSatuan: 10,
         hargaBeli: hb, hargaAgen: ha, hargaReseller: hr, hargaEcer: he,
-        komisiUnit: kom, stok: 0, minStok: min, aktif: true,
+        hargaPromo: promo, stok: 0, minStok: min, aktif: true,
       });
     });
 
-    SALES.forEach(([kode, nama, telp, skema, nilai, target]) => {
+    SALES.forEach(([kode, nama, telp, target]) => {
       db.sales.push({
         id: `sls_${kode.toLowerCase().replace('-', '')}`, dibuat: nowISO(),
-        kode, nama, telp, skema, nilai, target, aktif: true,
+        kode, nama, telp, target, aktif: true,
       });
     });
 
