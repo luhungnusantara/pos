@@ -21,7 +21,7 @@ const fields = [
   { name: 'aktif', label: 'Sales aktif', tipe: 'check', nilai: true, lebar: 'full' },
 ];
 
-const jelaskanKomisi = () => `${rp(tarifKomisi())} per unit terjual`;
+const jelaskanKomisi = () => `${rp(tarifKomisi())} per bungkus terjual`;
 
 function formSales(data = null) {
   formModal({

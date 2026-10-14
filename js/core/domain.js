@@ -99,21 +99,35 @@ export function hargaUntuk(produk, mitra, { promo = false } = {}) {
   return toNum(produk.hargaEcer) || toNum(produk.hargaReseller) || toNum(produk.hargaAgen);
 }
 
-/** komisi sales dalam Rp per unit terjual — satu tarif untuk semua sales & produk */
-export const tarifKomisi = () => toNum(db.pengaturan.komisiPerUnit ?? 300);
+/** komisi sales dalam Rp per BUNGKUS terjual — satu tarif untuk semua sales & produk */
+export const tarifKomisi = () => toNum(db.pengaturan.komisiPerBungkus ?? 300);
+
+/* isi bungkus baku bila kolom "Bungkus / Satuan" produk kosong */
+const BUNGKUS_BAKU = { Bungkus: 1, Slop: 10 };
 
 /**
- * Hitung komisi satu transaksi penjualan: tarif × jumlah unit terjual.
+ * Jumlah bungkus dalam satu satuan jual produk — pengali komisi.
+ * Produk yang dijual per bungkus selalu 1: formulir produk mengisi kolom ini
+ * dengan 10 secara bawaan, dan angka itu tidak boleh membuat komisinya 10×.
+ */
+export function bungkusPerSatuan(p) {
+  if (p?.satuan === 'Bungkus') return 1;
+  return toNum(p?.isiPerSatuan) || BUNGKUS_BAKU[p?.satuan] || 1;
+}
+
+/**
+ * Hitung komisi satu transaksi penjualan: tarif × jumlah bungkus terjual.
  * Harga jual (termasuk harga promo) dan diskon tidak memengaruhi komisi.
  * items: [{produkId, qty}]
  */
 export function hitungKomisi(sales, items) {
   if (!sales) return { nilai: 0, rincian: [] };
   const tarif = tarifKomisi();
-  const rincian = items.map(i => ({
-    produkId: i.produkId, qty: toNum(i.qty), nilai: round2(tarif * toNum(i.qty)),
-  }));
-  return { nilai: round2(sum(rincian, r => r.nilai)), rincian };
+  const rincian = items.map(i => {
+    const bungkus = round2(toNum(i.qty) * bungkusPerSatuan(get('produk', i.produkId)));
+    return { produkId: i.produkId, qty: toNum(i.qty), bungkus, nilai: round2(tarif * bungkus) };
+  });
+  return { nilai: round2(sum(rincian, r => r.nilai)), bungkus: round2(sum(rincian, r => r.bungkus)), rincian };
 }
 
 /* =========================================================
@@ -473,14 +487,14 @@ export function simpanPenjualan(data, { luarBatch = false } = {}) {
     // komisi sales
     const sales = trx.salesId ? get('sales', trx.salesId) : null;
     if (sales) {
-      const { nilai, rincian } = hitungKomisi(sales, items);
+      const { nilai, bungkus, rincian } = hitungKomisi(sales, items);
       if (nilai > 0) {
         db.komisi.unshift({
           id: uid('kom_'), dibuat: nowISO(),
           tanggal: trx.tanggal, salesId: sales.id, penjualanId: trx.id, noRef: trx.noRef,
           mitraId: trx.mitraId, omzet: total, laba: trx.laba,
-          qty: sum(items, i => i.qty),
-          skema: 'nominal_unit', nilaiSkema: tarifKomisi(),
+          qty: sum(items, i => i.qty), bungkus,
+          skema: 'per_bungkus', nilaiSkema: tarifKomisi(),
           nilai, rincian, status: 'pending', bayarId: '',
         });
       }

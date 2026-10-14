@@ -1,6 +1,6 @@
 /* pages/produk.js — master data produk rokok */
 import { db, add, update, remove, get } from '../core/store.js';
-import { stokKonsinyasi, nilaiPersediaan, produkMenipis } from '../core/domain.js';
+import { stokKonsinyasi, nilaiPersediaan, produkMenipis, tarifKomisi, bungkusPerSatuan } from '../core/domain.js';
 import {
   setJudul, setTopbar, setFab, formModal, konfirmasi, sukses, gagal, ingat, kosongState, statTile, badge, modal,
 } from '../core/ui.js';
@@ -16,7 +16,8 @@ const fields = [
   { name: 'merk', label: 'Merk / Pabrikan', placeholder: 'Sampoerna' },
   { name: 'isi', label: 'Isi per Bungkus', placeholder: '16 batang' },
   { name: 'satuan', label: 'Satuan Jual', tipe: 'select', opsi: ['Slop', 'Bungkus', 'Bal', 'Pack', 'Dus'] },
-  { name: 'isiPerSatuan', label: 'Bungkus / Satuan', tipe: 'number', min: 1, nilai: 10, hint: '1 slop = 10 bungkus' },
+  { name: 'isiPerSatuan', label: 'Bungkus / Satuan', tipe: 'number', min: 1, nilai: 10, wajib: true,
+    hint: 'Dasar komisi sales per bungkus. 1 slop = 10 bungkus' },
   { name: 'hargaBeli', label: 'Harga Beli', tipe: 'rupiah', wajib: true },
   { name: 'hargaAgen', label: 'Harga Agen', tipe: 'rupiah', wajib: true },
   { name: 'hargaReseller', label: 'Harga Reseller', tipe: 'rupiah', wajib: true },
@@ -72,7 +73,9 @@ function detailProduk(p) {
           <div class="kv"><span class="k">Harga Reseller</span><span class="v">${rp(p.hargaReseller)}${bolehLihatModal() ? ` <span class="xs pos">(+${rp(marginRes)})</span>` : ''}</span></div>
           ${toNum(p.hargaEcer) ? `<div class="kv"><span class="k">Harga Ecer</span><span class="v">${rp(p.hargaEcer)}</span></div>` : ''}
           ${toNum(p.hargaPromo) ? `<div class="kv"><span class="k">Harga Promo</span><span class="v">${rp(p.hargaPromo)}</span></div>` : ''}`}
-        <div class="kv"><span class="k">Isi per ${p.satuan || 'satuan'}</span><span class="v">${num(p.isiPerSatuan) || '-'} bungkus${p.isi ? ` &middot; ${esc(p.isi)}` : ''}</span></div>
+        <div class="kv"><span class="k">Isi per ${p.satuan || 'satuan'}</span><span class="v">${num(bungkusPerSatuan(p))} bungkus${p.isi ? ` &middot; ${esc(p.isi)}` : ''}</span></div>
+        ${adalah('mitra') ? '' : `<div class="kv"><span class="k">Komisi sales</span><span class="v">${rp(bungkusPerSatuan(p) * tarifKomisi())} per ${esc(p.satuan || 'satuan')}
+          <span class="xs muted">(${num(bungkusPerSatuan(p))} × ${rp(tarifKomisi())})</span></span></div>`}
         ${bolehLihatModal() ? `
           <div class="kv"><span class="k">Stok minimum</span><span class="v">${num(p.minStok)}</span></div>
           <div class="kv"><span class="k">Nilai persediaan</span><span class="v">${rp(toNum(p.stok) * toNum(p.hargaBeli))}</span></div>` : ''}

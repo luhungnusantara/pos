@@ -19,7 +19,7 @@ const kosong = () => ({
     catatanStruk: 'Terima kasih. Barang yang sudah dibeli tidak dapat ditukar.',
     saldoAwalKas: 0,
     tempoDefault: 14,
-    komisiPerUnit: 300,     // komisi sales: Rp per unit terjual, sama untuk semua sales & produk
+    komisiPerBungkus: 300,  // komisi sales: Rp per bungkus terjual, sama untuk semua sales & produk
     peringatanStok: true,
     pinOwner: '',           // bila diisi, kembali ke peran Pemilik butuh PIN
   },

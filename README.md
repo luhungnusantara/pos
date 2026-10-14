@@ -321,16 +321,20 @@ mitra melaporkan barang terjual, **bukan** ketika barang dititipkan.
 Rumusnya satu untuk semua sales dan semua produk:
 
 ```
-komisi = tarif × jumlah unit terjual        (tarif bawaan Rp300)
+komisi = tarif × jumlah terjual × bungkus per satuan      (tarif bawaan Rp300 per bungkus)
 ```
 
-- **Unit** mengikuti satuan jual produk — angka jumlah yang diketik di kasir (mis. Slop).
-- Harga jual, harga promo, dan diskon nota **tidak memengaruhi** komisi; yang dihitung hanya unitnya.
-- Tarif diubah pemilik lewat `Pengaturan → Preferensi Transaksi → Komisi Sales per Unit Terjual`.
+- **Bungkus per satuan** diambil dari kolom *Bungkus / Satuan* di Data Produk: jual 1 slop isi
+  10 bungkus = 10 × Rp300 = Rp3.000. Produk yang satuannya *Bungkus* selalu dihitung 1, walaupun
+  kolomnya terisi (formulir produk mengisi 10 secara bawaan). Kolom kosong pada produk *Slop*
+  dianggap 10. Detail produk menampilkan komisi per satuannya, jadi isian yang salah terlihat.
+- Harga jual, harga promo, dan diskon nota **tidak memengaruhi** komisi; yang dihitung hanya bungkusnya.
+- Tarif diubah pemilik lewat `Pengaturan → Preferensi Transaksi → Komisi Sales per Bungkus Terjual`.
   Isi `0` bila tidak ada komisi. Perubahan tarif hanya berlaku untuk penjualan **berikutnya** —
   komisi yang sudah tercatat tidak dihitung ulang.
-- Komisi yang tercatat sebelum tarif rata ini berlaku tetap menyimpan skema lamanya
-  (`% dari omzet`, `% dari laba kotor`, `Rp per unit`), dan tetap terbaca di ekspor CSV.
+- Rekaman komisi menyimpan jumlah bungkusnya (`bungkus`) dan skema `per_bungkus`; ikut di ekspor CSV.
+  Komisi yang tercatat sebelumnya tetap menyimpan skema lamanya (`% dari omzet`, `% dari laba kotor`,
+  `Rp per unit`).
 
 ---
 
@@ -391,8 +395,8 @@ sidebar 38px) sengaja memakai **mark** — glif tengahnya saja.
 
 - **Data tersimpan di browser perangkat**, tidak dikirim ke server mana pun. Membersihkan data
   situs akan menghapusnya — ekspor cadangan berkala lewat `Pengaturan → Ekspor Cadangan (JSON)`.
-- Satuan jual mengikuti pengaturan produk (Slop / Bungkus / Bal). Kolom *Bungkus per Satuan*
-  bersifat informasi.
+- Satuan jual mengikuti pengaturan produk (Slop / Bungkus / Bal). Kolom *Bungkus / Satuan*
+  menentukan komisi sales — pastikan isinya benar untuk setiap produk.
 - Kolom rupiah menerima angka polos; pemisah ribuan ditambahkan otomatis saat mengetik.
 - Semua laporan dapat diekspor ke **CSV** (pemisah `;`, siap dibuka di Excel Indonesia).
 

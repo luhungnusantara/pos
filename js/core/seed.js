@@ -57,7 +57,7 @@ export function isiContoh() {
       telp: '0812-3456-7890',
       saldoAwalKas: 60000000,
       tempoDefault: 14,
-      komisiPerUnit: 300,
+      komisiPerBungkus: 300,
     };
 
     PRODUK.forEach(([kode, nama, isi, merk, hb, ha, hr, he, promo, min], i) => {

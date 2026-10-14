@@ -11,10 +11,13 @@ import { esc, rp, num, sum, fmtTgl, fmtTglPendek, sortBy, todayISO, unduh, toCSV
 
 let f = { kode: 'bulan', dari: todayISO(), sampai: todayISO(), status: 'semua' };
 
-const jelaskanKomisi = () => `${rp(tarifKomisi())}/unit`;
+const jelaskanKomisi = () => `${rp(tarifKomisi())}/bungkus`;
 
 // skema sebelum tarif rata — komisi lama tetap tercatat dengan skema aslinya
-const LABEL_SKEMA = { persen_omzet: '% dari omzet', persen_laba: '% dari laba kotor', nominal_unit: 'Rp per unit terjual' };
+const LABEL_SKEMA = {
+  persen_omzet: '% dari omzet', persen_laba: '% dari laba kotor',
+  nominal_unit: 'Rp per unit terjual', per_bungkus: 'Rp per bungkus terjual',
+};
 
 /* =========================================================
    REKAP SELURUH SALES
@@ -43,8 +46,8 @@ function halamanRekap(view) {
       <div class="lbl-t">ℹ️ Cara kerja komisi</div>
       <div class="xs muted" style="line-height:1.7">
         Komisi dihitung otomatis saat penjualan tersimpan — termasuk penjualan konsinyasi ketika mitra melaporkan barang terjual
-        (bukan saat barang dititipkan). Semua sales mendapat <b>${rp(tarifKomisi())} per unit terjual</b>, termasuk
-        penjualan dengan harga promo.
+        (bukan saat barang dititipkan). Semua sales mendapat <b>${rp(tarifKomisi())} per bungkus terjual</b>, termasuk
+        penjualan dengan harga promo. Penjualan per slop dihitung dari isi bungkusnya (1 slop = 10 bungkus).
       </div>
     </div></div>
 
@@ -279,7 +282,7 @@ function ekspor(dari, sampai, salesId = null) {
   if (!arr.length) return gagal('Tidak ada data komisi untuk diekspor');
   unduh(`komisi-${todayISO()}.csv`, toCSV(arr.map(k => ({
     Tanggal: k.tanggal, Sales: get('sales', k.salesId)?.nama || '', NoNota: k.noRef || '',
-    Mitra: get('mitra', k.mitraId)?.nama || '', Omzet: k.omzet, Laba: k.laba, Qty: k.qty,
+    Mitra: get('mitra', k.mitraId)?.nama || '', Omzet: k.omzet, Laba: k.laba, Qty: k.qty, Bungkus: k.bungkus ?? '',
     Skema: LABEL_SKEMA[k.skema] || k.skema, NilaiSkema: k.nilaiSkema,
     Komisi: k.nilai, Status: k.status, TanggalBayar: k.tglBayar || '',
   }))), 'text/csv');

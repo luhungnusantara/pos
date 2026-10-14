@@ -288,7 +288,7 @@ function formTransaksi() {
     fields: [
       { name: 'saldoAwalKas', label: 'Saldo Awal Kas', tipe: 'rupiah', hint: 'Uang kas sebelum aplikasi dipakai' },
       { name: 'tempoDefault', label: 'Tempo Kredit Default (hari)', tipe: 'number', min: 0 },
-      { name: 'komisiPerUnit', label: 'Komisi Sales per Unit Terjual', tipe: 'rupiah', hint: 'Berlaku untuk semua sales & produk. Isi 0 bila tanpa komisi' },
+      { name: 'komisiPerBungkus', label: 'Komisi Sales per Bungkus Terjual', tipe: 'rupiah', hint: 'Berlaku untuk semua sales & produk; 1 slop = 10 bungkus. Isi 0 bila tanpa komisi' },
       { name: 'peringatanStok', label: 'Tampilkan peringatan stok menipis', tipe: 'check', lebar: 'full' },
     ],
     data: db.pengaturan,
@@ -370,7 +370,7 @@ export function render(view) {
       <div class="card-body">
         <div class="kv"><span class="k">Saldo awal kas</span><span class="v">${rp(p.saldoAwalKas)}</span></div>
         <div class="kv"><span class="k">Tempo kredit default</span><span class="v">${num(p.tempoDefault)} hari</span></div>
-        <div class="kv"><span class="k">Komisi sales</span><span class="v">${rp(tarifKomisi())} per unit terjual</span></div>
+        <div class="kv"><span class="k">Komisi sales</span><span class="v">${rp(tarifKomisi())} per bungkus terjual</span></div>
         <div class="kv"><span class="k">Peringatan stok menipis</span><span class="v">${p.peringatanStok === false ? 'Nonaktif' : 'Aktif'}</span></div>
       </div>
     </div>
