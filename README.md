@@ -56,7 +56,10 @@ diperbarui otomatis, dan pembayaran tercatat sebagai kas keluar (tunai) atau hut
 ### 3. Penjualan putus
 `Penjualan Baru` → pilih pelanggan (harga menyesuaikan tipe mitra secara otomatis), tambahkan
 produk, tentukan diskon, lalu bayar **tunai** atau **kredit/tempo**. Aplikasi memperingatkan bila
-stok kurang atau plafon kredit mitra terlampaui. Nota bisa dicetak atau dibagikan via WhatsApp.
+stok kurang atau plafon kredit mitra terlampaui. Nota bisa dicetak atau dibagikan via WhatsApp
+**sebagai foto nota** (sama persis dengan pratinjaunya). Di HP, tombol **Bagikan** membuka menu berbagi
+dan WhatsApp menerima gambar PNG. Di perangkat yang belum bisa berbagi berkas (umumnya PC), muncul pilihan
+**Salin Gambar** (lalu Ctrl+V di WhatsApp Web/Desktop), **Unduh**, atau **Salin Teks**.
 
 **Harga promo.** Di kartu Pembayaran, pilih **Harga → 🏷️ Promo** untuk menjual dengan harga promo
 yang diisi di Data Produk. Produk yang tidak punya harga promo tetap memakai harga normal (aplikasi
