@@ -239,14 +239,27 @@ function modalBagikan(jual, blob, berkas) {
       bisaSalin && {
         teks: '📋 Salin Gambar', kelas: bisaBagikan ? '' : 'btn-primary', aksi: async () => {
           try {
-            await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-            sukses('Gambar nota disalin — tempel di chat WhatsApp');
+            await salinGambar(blob);
+            sukses(`Nota ${jual.noRef} disalin — tempel (Ctrl+V) di chat WhatsApp`);
           } catch { gagal('Gambar tidak bisa disalin, pakai Unduh'); }
         },
       },
       bisaBagikan && { teks: '📤 Bagikan', kelas: 'btn-primary', aksi: () => navigator.share({ files: [berkas] }).catch(() => {}) },
     ].filter(Boolean),
   });
+}
+
+/* Chrome di Windows hanya mencoba membuka clipboard 5 × 5 ms. Bila saat itu
+   clipboard sedang dipegang aplikasi lain (WhatsApp sesaat setelah menempel,
+   riwayat clipboard Windows, pengelola clipboard, remote desktop), penulisan
+   dibatalkan diam-diam namun janjinya tetap sukses — yang tertempel lalu masih
+   nota sebelumnya. Karena kegagalan itu tidak bisa dideteksi, gambar ditulis
+   sekali lagi setelah jeda singkat; isinya sama, jadi tidak ada ruginya. */
+async function salinGambar(blob) {
+  const tulis = () => navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+  await tulis(); // galat percobaan pertama diteruskan ke pemanggil
+  await new Promise(r => setTimeout(r, 300));
+  await tulis().catch(() => {});
 }
 
 async function salinTeks(teks) {
