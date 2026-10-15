@@ -28,6 +28,7 @@ const kosong = () => ({
   sales: [],
   pembelian: [],   // stok masuk dari supplier
   opname: [],      // stok opname
+  keluar: [],      // stok keluar selain penjualan (rusak, sampel, retur supplier)
   konsinyasi: [],  // barang titipan
   penjualan: [],
   pembayaran: [],  // pelunasan piutang / hutang
@@ -172,7 +173,7 @@ export function setDB(data) {
 }
 
 export const kosongkanTransaksi = () => {
-  ['pembelian', 'opname', 'konsinyasi', 'penjualan', 'pembayaran', 'kas', 'komisi', 'bayarKomisi', 'mutasi']
+  ['pembelian', 'opname', 'keluar', 'konsinyasi', 'penjualan', 'pembayaran', 'kas', 'komisi', 'bayarKomisi', 'mutasi']
     .forEach(k => { db[k] = []; });
   db.produk.forEach(p => { p.stok = 0; });
   save(true);

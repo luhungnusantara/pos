@@ -61,6 +61,7 @@ function tabRingkas(dari, sampai, label) {
         <div class="kv"><span class="k">Komisi Sales</span><span class="v neg">− ${rp(r.komisi)}</span></div>
         <div class="kv"><span class="k">Biaya Operasional</span><span class="v neg">− ${rp(biayaLain)}</span></div>
         <div class="kv"><span class="k">Susut Stok (opname)</span><span class="v neg">− ${rp(r.susut)}</span></div>
+        ${r.keluar ? `<div class="kv"><span class="k">Stok Keluar (rusak, sampel, dll.)</span><span class="v neg">− ${rp(r.keluar)}</span></div>` : ''}
         <div class="kv total"><span class="k">Laba Bersih</span>
           <span class="v" style="color:${r.labaBersih >= 0 ? 'var(--ok)' : 'var(--bad)'}">${rp(r.labaBersih)}</span></div>
       </div>

@@ -1,7 +1,7 @@
 # POS Luhung Nusantara
 
 Aplikasi Point of Sales untuk **penjualan rokok ke agen dan reseller**, mulai dari stok masuk,
-stok opname, **konsinyasi (barang titipan)**, penjualan, kas, piutang/hutang, sampai
+stok keluar, stok opname, **konsinyasi (barang titipan)**, penjualan, kas, piutang/hutang, sampai
 **perhitungan komisi per sales**.
 
 Dibangun dengan **HTML + CSS + JavaScript Module murni** — tanpa framework, tanpa proses build,
@@ -52,6 +52,19 @@ sales di `Pengaturan → Preferensi Transaksi`.
 ### 2. Stok masuk
 `Pembelian / Stok Masuk` → catat faktur dari supplier. Stok gudang bertambah, harga beli
 diperbarui otomatis, dan pembayaran tercatat sebagai kas keluar (tunai) atau hutang (tempo).
+
+### 2b. Stok keluar (bukan penjualan)
+`Barang / Stok Keluar` → catat barang yang keluar gudang **tanpa dijual**: pilih alasannya, isi
+tujuan/penerima (opsional), lalu tambahkan produk. Jumlahnya tidak bisa melebihi stok gudang.
+
+| Alasan | Akibat |
+|---|---|
+| Rusak / Cacat, Kedaluwarsa, Hilang, Sampel / Promosi, Pemakaian Sendiri, Lainnya | Stok gudang berkurang; nilainya (harga beli) dihitung **kerugian** di Laporan Laba Rugi |
+| Retur ke Supplier | Stok gudang berkurang, **bukan kerugian**. Uang kembali dicatat di Kas Masuk |
+
+Tidak ada kas yang tercatat otomatis. Setiap dokumen bernomor `BK/yymm/nnnn` dan tampil di kartu
+stok sebagai *Stok Keluar*. Dokumen yang salah catat bisa dibatalkan pemilik lewat **⛔ Batalkan**,
+dan barangnya kembali ke gudang.
 
 ### 3. Penjualan putus
 `Penjualan Baru` → pilih pelanggan (harga menyesuaikan tipe mitra secara otomatis), tambahkan
@@ -235,10 +248,10 @@ Untuk pihak yang perlu melihat angka toko tanpa ikut berjualan:
 
 | | 💼 Keuangan | 📈 Investor |
 |---|---|---|
-| Menu | Dashboard, Riwayat Penjualan, Konsinyasi, Pembelian, Piutang & Hutang, Produk, Kartu Stok, Agen & Reseller, Komisi, Kas, Laporan | Dashboard, Laporan |
+| Menu | Dashboard, Riwayat Penjualan, Konsinyasi, Pembelian, Stok Keluar, Piutang & Hutang, Produk, Kartu Stok, Agen & Reseller, Komisi, Kas, Laporan | Dashboard, Laporan |
 | Angka yang tampil | seluruh toko, termasuk HPP, laba, dan kas | seluruh toko, termasuk HPP, laba, dan kas |
 | Boleh mencatat | kas masuk/keluar, pelunasan piutang, pembayaran hutang, pembayaran komisi | tidak ada |
-| Tidak boleh | menjual, menitip, stok masuk/opname, mengubah produk/harga/mitra/sales, mengelola akun | — |
+| Tidak boleh | menjual, menitip, stok masuk/keluar/opname, mengubah produk/harga/mitra/sales, mengelola akun | — |
 
 Pembatasan ini **ditegakkan server**. Akun keuangan hanya bisa mengubah kolom
 pembayaran (`dibayar`, status komisi) pada transaksi yang sudah ada — membuat
@@ -298,12 +311,12 @@ Aplikasi punya **tiga tampilan** yang dipilih lewat tombol peran di bagian bawah
 
 | | 👑 Pemilik | 🧑‍💼 Sales | 🏪 Agen / Reseller |
 |---|---|---|---|
-| Menu tersedia | seluruhnya (15) | 9 menu | 5 menu |
+| Menu tersedia | seluruhnya (16) | 9 menu | 5 menu |
 | Kasir & konsinyasi | ✅ catat | ✅ catat | 👁️ lihat saja |
 | Data yang tampil | semua | hanya mitra binaan | hanya miliknya sendiri |
 | Harga beli, HPP, laba, margin | ✅ | ❌ | ❌ |
 | Kas, pembelian, hutang, laporan | ✅ | ❌ | ❌ |
-| Stok opname & data induk | ✅ | ❌ | ❌ |
+| Stok keluar, stok opname & data induk | ✅ | ❌ | ❌ |
 | Komisi | semua sales + bayar | hanya miliknya | ❌ |
 
 Beranda pun berbeda: **Sales** melihat omzet dan komisinya sendiri beserta capaian target,

@@ -21,7 +21,7 @@ const AKSES = {
   mitra: ['dashboard', 'produk', 'konsinyasi', 'penjualan', 'piutang'],
   // keuangan melihat hampir semuanya, tetapi tidak menjual, tidak mengubah
   // data induk, dan tidak mengelola akun (Pengaturan)
-  keuangan: ['dashboard', 'penjualan', 'konsinyasi', 'pembelian', 'piutang',
+  keuangan: ['dashboard', 'penjualan', 'konsinyasi', 'pembelian', 'keluar', 'piutang',
     'produk', 'stok', 'mitra', 'komisi', 'kas', 'laporan'],
   investor: ['dashboard', 'laporan'],
 };

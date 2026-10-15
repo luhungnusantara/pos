@@ -25,6 +25,7 @@ const MENU = [
       { id: 'penjualan', teks: 'Riwayat Penjualan', ikon: '💰' },
       { id: 'konsinyasi', teks: 'Konsinyasi', ikon: '🤝' },
       { id: 'pembelian', teks: 'Pembelian / Stok Masuk', ikon: '📥' },
+      { id: 'keluar', teks: 'Barang / Stok Keluar', ikon: '📤' },
       { id: 'piutang', teks: 'Piutang & Hutang', ikon: '📌' },
     ],
   },

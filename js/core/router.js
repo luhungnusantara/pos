@@ -12,6 +12,7 @@ const rute = {
   stok: () => import('../pages/stok.js'),
   opname: () => import('../pages/opname.js'),
   pembelian: () => import('../pages/pembelian.js'),
+  keluar: () => import('../pages/keluar.js'),
   mitra: () => import('../pages/mitra.js'),
   sales: () => import('../pages/sales.js'),
   komisi: () => import('../pages/komisi.js'),

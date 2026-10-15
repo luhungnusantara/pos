@@ -14,6 +14,7 @@ export const TIPE_MUTASI = {
   'retur-titip': { label: 'Retur Konsinyasi', arah: 1 },
   'retur-jual': { label: 'Retur Penjualan', arah: 1 },
   'opname': { label: 'Penyesuaian Opname', arah: 0 },
+  'keluar': { label: 'Stok Keluar', arah: -1 },
   'batal': { label: 'Pembatalan', arah: 0 },
 };
 
@@ -281,6 +282,73 @@ export function simpanOpname(data) {
       trx.kerugian = rugi;
     }
     return trx;
+  });
+}
+
+/* =========================================================
+   6b. TRANSAKSI — STOK KELUAR (BUKAN PENJUALAN)
+   ========================================================= */
+
+/** alasan barang keluar gudang tanpa dijual. rugi: nilainya dibebankan di laba rugi */
+export const ALASAN_KELUAR = {
+  rusak: { label: 'Rusak / Cacat', ikon: '💔', rugi: true },
+  kedaluwarsa: { label: 'Kedaluwarsa', ikon: '⌛', rugi: true },
+  hilang: { label: 'Hilang', ikon: '❓', rugi: true },
+  sampel: { label: 'Sampel / Promosi', ikon: '🎁', rugi: true },
+  pakai: { label: 'Pemakaian Sendiri', ikon: '🏠', rugi: true },
+  // barang kembali ke supplier: diganti barang atau uang, jadi bukan kerugian
+  retur: { label: 'Retur ke Supplier', ikon: '↩️', rugi: false },
+  lain: { label: 'Lainnya', ikon: '📤', rugi: true },
+};
+
+export const labelAlasanKeluar = id => ALASAN_KELUAR[id]?.label || 'Lainnya';
+
+/** nilai (harga beli) stok keluar yang aktif dan dihitung rugi, untuk laba rugi */
+export const kerugianKeluar = (dari = null, sampai = null) => round2(sum(
+  db.keluar.filter(k => k.status !== 'batal' && ALASAN_KELUAR[k.alasan]?.rugi !== false
+    && dalamRentang(k.tanggal, dari, sampai)),
+  k => k.nilai));
+
+/** items: [{produkId, qty}] — stok gudang harus cukup */
+export function simpanKeluar(data) {
+  const kurang = data.items.find(i => toNum(i.qty) > stokGudang(i.produkId));
+  if (kurang) throw new Error(`Stok ${get('produk', kurang.produkId)?.nama || ''} tidak cukup`);
+  return batch(() => {
+    const items = data.items.map(i => ({
+      produkId: i.produkId, qty: toNum(i.qty), hargaBeli: toNum(get('produk', i.produkId)?.hargaBeli),
+    }));
+    const trx = {
+      id: uid('klr_'), dibuat: nowISO(),
+      noRef: data.noRef || noUrut('BK', db.keluar),
+      tanggal: data.tanggal || todayISO(),
+      alasan: ALASAN_KELUAR[data.alasan] ? data.alasan : 'lain',
+      penerima: data.penerima || '',
+      items,
+      nilai: round2(sum(items, i => i.qty * i.hargaBeli)),
+      catatan: data.catatan || '',
+      status: 'aktif',
+    };
+    db.keluar.unshift(trx);
+
+    const ket = [labelAlasanKeluar(trx.alasan), trx.penerima].filter(Boolean).join(' — ');
+    items.forEach(i => catatMutasi({
+      produkId: i.produkId, tanggal: trx.tanggal, tipe: 'keluar', qty: -i.qty, ref: trx.noRef, ket,
+    }));
+    return trx;
+  });
+}
+
+export function batalkanKeluar(id) {
+  const trx = get('keluar', id);
+  if (!trx || trx.status === 'batal') return false;
+  return batch(() => {
+    trx.items.forEach(i => catatMutasi({
+      produkId: i.produkId, tanggal: todayISO(), tipe: 'batal', qty: toNum(i.qty),
+      ref: trx.noRef, ket: 'Pembatalan stok keluar',
+    }));
+    trx.status = 'batal';
+    trx.diubah = nowISO();
+    return true;
   });
 }
 
@@ -688,12 +756,13 @@ export function ringkasan(dari = null, sampai = null) {
     kas.filter(k => k.arah === 'keluar' && !['Pembelian Stok', 'Bayar Hutang', 'Komisi Sales'].includes(k.kategori)),
     k => k.jumlah));
   const susut = round2(sum(opn, o => Math.max(0, -sum(o.items.filter(i => i.selisih < 0), i => i.selisih * i.hargaBeli))));
+  const keluar = kerugianKeluar(dari, sampai);
 
   return {
     trx: jual.length,
     qty: round2(sum(jual, j => sum(j.items, i => i.qty))),
-    omzet, hpp, labaKotor, komisi, biaya, susut,
-    labaBersih: round2(labaKotor - komisi - biaya - susut),
+    omzet, hpp, labaKotor, komisi, biaya, susut, keluar,
+    labaBersih: round2(labaKotor - komisi - biaya - susut - keluar),
     marginPersen: omzet > 0 ? round2(labaKotor / omzet * 100) : 0,
     tunai: round2(sum(jual.filter(j => j.bayar === 'tunai'), j => j.total)),
     kredit: round2(sum(jual.filter(j => j.bayar !== 'tunai'), j => j.total)),

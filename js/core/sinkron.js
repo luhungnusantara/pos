@@ -15,7 +15,7 @@ import {
 
 /** koleksi yang ikut disinkronkan — sama persis dengan daftar di server */
 const KOLEKSI = [
-  'produk', 'mitra', 'sales', 'pembelian', 'opname', 'konsinyasi',
+  'produk', 'mitra', 'sales', 'pembelian', 'opname', 'keluar', 'konsinyasi',
   'penjualan', 'pembayaran', 'kas', 'komisi', 'bayarKomisi', 'mutasi',
 ];
 

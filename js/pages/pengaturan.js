@@ -510,7 +510,7 @@ export function render(view) {
   view.querySelector('#hapusTrx').onclick = async () => {
     const ya = await konfirmasi({
       judul: 'Hapus semua transaksi?', bahaya: true, ok: 'Ya, hapus transaksi',
-      pesan: 'Penjualan, pembelian, konsinyasi, opname, kas, dan komisi akan dihapus. Stok produk dikembalikan ke 0.<br><br>Data produk, mitra, dan sales tetap ada.',
+      pesan: 'Penjualan, pembelian, stok keluar, konsinyasi, opname, kas, dan komisi akan dihapus. Stok produk dikembalikan ke 0.<br><br>Data produk, mitra, dan sales tetap ada.',
     });
     if (!ya) return;
     kosongkanTransaksi();
