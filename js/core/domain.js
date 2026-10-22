@@ -640,6 +640,7 @@ export function bayarPiutang({ penjualanId, jumlah, tanggal, metode = 'tunai', c
     jual.dibayar = round2(toNum(jual.dibayar) + nilai);
     const byr = {
       id: uid('byr_'), dibuat: nowISO(), tipe: 'piutang',
+      noBukti: noUrut('BY', db.pembayaran, 'noBukti'),
       tanggal: tanggal || todayISO(), refId: jual.id, noRef: jual.noRef,
       mitraId: jual.mitraId, jumlah: nilai, metode, catatan,
     };
@@ -663,6 +664,7 @@ export function bayarHutang({ pembelianId, jumlah, tanggal, metode = 'tunai', ca
     beli.dibayar = round2(toNum(beli.dibayar) + nilai);
     const byr = {
       id: uid('byr_'), dibuat: nowISO(), tipe: 'hutang',
+      noBukti: noUrut('BY', db.pembayaran, 'noBukti'),
       tanggal: tanggal || todayISO(), refId: beli.id, noRef: beli.noRef,
       supplier: beli.supplier, jumlah: nilai, metode, catatan,
     };

@@ -8,7 +8,7 @@ import {
   setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, ingat,
   kosongState, statTile, badge, pasangRupiah, pilihItem, avatarEl,
 } from '../core/ui.js';
-import { tampilkanStruk } from '../core/struk.js';
+import { tampilkanStruk, tampilkanSuratTitip } from '../core/struk.js';
 import { segarkan, pergi } from '../core/router.js';
 import { bolehTransaksi, bolehKelola, bolehLihatKonsinyasi, filterKonsinyasi, filterMitra, adalah } from '../core/peran.js';
 import {
@@ -272,6 +272,7 @@ function halamanBaru(view, mitraId = '') {
       const k = simpanKonsinyasi(form);
       sukses(`Titipan ${k.noRef} tersimpan`);
       pergi(`konsinyasi/detail/${k.id}`);
+      tampilkanSuratTitip(k);
     };
   };
   gambar();
@@ -403,6 +404,10 @@ function halamanDetail(view, id) {
 
     ${k.catatan ? `<div class="card mb12"><div class="card-body"><div class="lbl-t">Catatan</div><div class="sm">${esc(k.catatan)}</div></div></div>` : ''}
 
+    <div class="btn-row mb12">
+      <button class="btn btn-soft grow" id="btnSurat">🧾 Surat Titip Barang</button>
+    </div>
+
     ${notaTerkait.length ? `
       <div class="section-title">Setoran / Nota Terkait (${notaTerkait.length})</div>
       <div class="card mb12"><div class="list">
@@ -434,6 +439,7 @@ function halamanDetail(view, id) {
         <button class="btn btn-ghost" id="btnBatal">🗑️ Batalkan Titipan</button>
       </div>` : ''}`;
 
+  view.querySelector('#btnSurat').addEventListener('click', () => tampilkanSuratTitip(k));
   view.querySelector('#btnLapor')?.addEventListener('click', () => modalLapor(k));
   view.querySelector('#btnTambah')?.addEventListener('click', () => modalTambahTitipan(k));
   view.querySelector('#btnTutup')?.addEventListener('click', async () => {

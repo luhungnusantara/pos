@@ -5,6 +5,7 @@ import {
   setJudul, setTopbar, setFab, modal, konfirmasi, sukses, ingat, kosongState, statTile, badge, pasangRupiah,
 } from '../core/ui.js';
 import { modalBayarHutang } from '../core/bayar.js';
+import { tampilkanBuktiBayar, noBukti } from '../core/struk.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
 import { bolehKelola, bolehKeuangan } from '../core/peran.js';
@@ -97,7 +98,8 @@ function halamanDaftar(view) {
 function detail(b) {
   const sisa = round2(toNum(b.total) - toNum(b.dibayar));
   const batal = b.status === 'batal';
-  modal({
+  const riwayat = db.pembayaran.filter(p => p.refId === b.id);
+  const h = modal({
     judul: b.noRef, lebar: 'wide',
     isi: `
       <div class="flex flex-wrap mb12">
@@ -125,7 +127,16 @@ function detail(b) {
         <div class="kv total"><span class="k">Total</span><span class="v">${rp(b.total)}</span></div>
         <div class="kv"><span class="k">Dibayar</span><span class="v pos">${rp(b.dibayar)}</span></div>
         ${sisa > 0 ? `<div class="kv"><span class="k">Sisa hutang</span><span class="v neg">${rp(sisa)}</span></div>` : ''}
-      </div></div>`,
+      </div></div>
+      ${riwayat.length ? `
+        <div class="section-title">Riwayat Pembayaran</div>
+        <div class="card"><div class="list">
+          ${riwayat.map(p => `
+            <div class="row-item" data-byr="${esc(p.id)}"><div class="ri-main">
+              <div class="ri-title">${rp(p.jumlah)}</div>
+              <div class="ri-sub">${esc(noBukti(p))} · ${fmtTgl(p.tanggal)} · ${esc(p.metode)}${p.catatan ? ' · ' + esc(p.catatan) : ''}</div>
+            </div><div class="ri-right"><span class="btn btn-xs btn-ghost">🧾 Bukti</span></div></div>`).join('')}
+        </div></div>` : ''}`,
     tombol: batal || !(bolehKelola() || (sisa > 0 && bolehKeuangan())) ? [{ teks: 'Tutup', kelas: 'btn-ghost' }] : [
       ...(bolehKelola() ? [{
         teks: '⛔ Batalkan', kelas: 'btn-ghost', aksi: async h => {
@@ -138,6 +149,11 @@ function detail(b) {
       }] : []),
       ...(sisa > 0 && bolehKeuangan() ? [{ teks: '💵 Bayar Hutang', kelas: 'btn-primary', aksi: h => { h.tutup(); modalBayarHutang(b, segarkan); } }] : []),
     ],
+  });
+  h.body.addEventListener('click', e => {
+    const row = e.target.closest('[data-byr]'); if (!row) return;
+    const byr = get('pembayaran', row.dataset.byr);
+    if (byr) tampilkanBuktiBayar(byr);
   });
 }
 

@@ -99,6 +99,13 @@ detailnya: sisa barang kembali ke gudang (tercatat sebagai *Pembatalan* di kartu
 titipan pindah ke filter *Dibatalkan*. Titipan yang sudah punya setoran baru bisa dibatalkan
 setelah nota setorannya dibatalkan di Riwayat Penjualan.
 
+**Surat Titip Barang (bukti konsinyasi).** Begitu titipan disimpan, aplikasi langsung menampilkan
+surat titip bernomor `KS/yymm/nnnn`: penerima, sales, batas laporan, rincian barang × harga,
+nilai titipan, dan kolom tanda tangan **Penerima** & **Pengirim**. Surat bisa dibuka lagi kapan saja
+lewat tombol **🧾 Surat Titip Barang** di detail titipan. Setelah ada laporan, surat ikut memuat
+jumlah laku, retur, dan sisa per produk — jadi bisa dipakai sebagai berita acara saat menagih.
+Seperti nota, surat ini dicetak atau **dibagikan ke WhatsApp sebagai foto**.
+
 ### 5. Stok opname
 `Stok Opname` → isi jumlah fisik hasil hitung gudang. Aplikasi menampilkan selisih terhadap
 catatan sistem beserta nilai rupiahnya, lalu menyesuaikan stok. Kekurangan fisik dihitung sebagai
@@ -108,6 +115,10 @@ susut pada laporan laba rugi.
 - `Kas Masuk & Keluar` — kas dari penjualan, pelunasan, pembelian, dan komisi tercatat otomatis;
   biaya operasional bisa diinput manual.
 - `Piutang & Hutang` — dikelompokkan per mitra lengkap dengan umur piutang dan penerimaan pembayaran.
+  Setiap pembayaran menghasilkan **Bukti Pembayaran** bernomor `BY/yymm/nnnn` yang langsung tampil
+  setelah disimpan: total nota, dibayar sebelumnya, jumlah bayar beserta terbilangnya, metode, sisa
+  atau LUNAS, dan kolom tanda tangan. Bukti lama dibuka lagi dari **Riwayat Pembayaran** di detail
+  nota penjualan (piutang) atau detail pembelian (hutang). Bisa dicetak atau dibagikan sebagai foto.
 - `Komisi Sales` — rekap per sales, rincian per transaksi, dan pembayaran komisi (otomatis jadi kas keluar).
 
 ---
@@ -237,6 +248,15 @@ Belum ada akun bawaan — akun pertama dibuat sendiri:
    Sales/Mitra yang sudah ada, dipilih dari daftar — bukan diketik — supaya
    penyaringan datanya tidak diam-diam meleset karena id salah ketik.
 3. Berikan nomor HP dan kata sandinya kepada yang bersangkutan.
+
+**Nomor yang pernah mendaftar sendiri.** Sering terjadi: calon investor atau sales mencoba aplikasi
+dengan mendaftarkan toko sendiri, lalu belakangan pemilik hendak membuatkan akunnya dan nomornya
+ditolak karena *sudah terdaftar*. Bila toko hasil daftar sendiri itu **masih kosong** — belum ada
+data apa pun, tidak ada akun lain, dan tidak bernaung di bawah pusat — aplikasi menawarkan untuk
+**memindahkan akun itu** ke toko Anda dengan peran yang dipilih. Setelah disetujui, toko kosongnya
+dihapus dan kata sandinya diganti dengan yang Anda isi. Toko yang sudah berisi data tidak pernah
+ditawarkan; nomor itu tetap dianggap milik orang lain. Nomor HP harus diketik **persis sama**
+dengan saat ia mendaftar (server belum menyeragamkan format `08…`/`628…`/`+62…`).
 
 Akses bisa **dicabut dan dipulihkan** kapan saja dari kartu yang sama.
 Pencabutan berlaku seketika, bahkan pada perangkat yang sudah terlanjur masuk —
@@ -379,7 +399,7 @@ js/core/
   ui.js               modal, toast, form, pemilih item, komponen
   router.js           navigasi hash + pemuatan halaman dinamis
   utils.js            format rupiah/tanggal, nomor transaksi, CSV
-  struk.js            tampilan, cetak, dan berbagi nota
+  struk.js            tampilan, cetak, dan berbagi nota, surat titip barang, bukti pembayaran
   bayar.js            dialog pelunasan piutang & hutang
   periode.js          pemilih rentang tanggal
   luring.js           status jaringan, penyimpanan tetap, pembaruan aplikasi

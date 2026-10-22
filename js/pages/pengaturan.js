@@ -118,14 +118,33 @@ function formAkunBaru(view) {
       const [peran, refId] = String(d.tautan).split(':');
       const tombol = h.foot.querySelector('.btn-primary');
       tombol.disabled = true;
-      tambahPengguna({
+      const kirim = ambilAlih => tambahPengguna({
         nama: d.nama, phone: String(d.phone).trim(),
-        password: d.password, peran, refId,
-      }).then(() => {
-        h.tutup();
-        sukses(`Akun ${d.nama} dibuat — berikan nomor HP dan sandinya kepada yang bersangkutan`);
-        gambarAkun(view);
-      }).catch(e => { tombol.disabled = false; gagal(e.message); });
+        password: d.password, peran, refId, ambilAlih,
+      });
+      kirim(false)
+        .catch(async e => {
+          /* Nomor ini pernah dipakai mendaftar sendiri dan tokonya masih kosong.
+             Server tidak memindahkannya diam-diam: pemilik harus setuju dulu. */
+          if (!e.isi?.bisa_ambil_alih) throw e;
+          const label = PERAN[peran]?.label || peran;
+          const ya = await konfirmasi({
+            judul: 'Nomor sudah pernah mendaftar',
+            pesan: `Nomor <b>${esc(d.phone)}</b> pernah dipakai mendaftar sendiri sebagai pemilik toko
+              <b>${esc(e.isi.toko_lama || '-')}</b>, tetapi toko itu masih kosong (belum ada data apa pun).<br><br>
+              Pindahkan akun itu ke toko Anda sebagai <b>${esc(label)}</b>? Toko kosong tersebut dihapus dan
+              kata sandinya diganti dengan yang Anda isi.`,
+            ok: 'Ya, pindahkan',
+          });
+          if (!ya) { const batal = new Error(''); batal.dibatalkan = true; throw batal; }
+          return kirim(true);
+        })
+        .then(() => {
+          h.tutup();
+          sukses(`Akun ${d.nama} dibuat — berikan nomor HP dan sandinya kepada yang bersangkutan`);
+          gambarAkun(view);
+        })
+        .catch(e => { tombol.disabled = false; if (!e.dibatalkan) gagal(e.message); });
       return false;
     },
   });

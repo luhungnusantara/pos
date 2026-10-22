@@ -4,7 +4,7 @@ import { sisaPiutang, statusBayar, batalkanPenjualan } from '../core/domain.js';
 import {
   setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, kosongState, statTile, badge,
 } from '../core/ui.js';
-import { tampilkanStruk, bagikanStruk } from '../core/struk.js';
+import { tampilkanStruk, bagikanStruk, tampilkanBuktiBayar, noBukti } from '../core/struk.js';
 import { modalBayarPiutang } from '../core/bayar.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
@@ -88,16 +88,21 @@ function detail(j) {
         <div class="section-title">Riwayat Pembayaran</div>
         <div class="card"><div class="list">
           ${db.pembayaran.filter(p => p.refId === j.id).map(p => `
-            <div class="row-item"><div class="ri-main">
+            <div class="row-item" data-byr="${esc(p.id)}"><div class="ri-main">
               <div class="ri-title">${rp(p.jumlah)}</div>
-              <div class="ri-sub">${fmtTgl(p.tanggal)} · ${esc(p.metode)}${p.catatan ? ' · ' + esc(p.catatan) : ''}</div>
-            </div></div>`).join('')}
+              <div class="ri-sub">${esc(noBukti(p))} · ${fmtTgl(p.tanggal)} · ${esc(p.metode)}${p.catatan ? ' · ' + esc(p.catatan) : ''}</div>
+            </div><div class="ri-right"><span class="btn btn-xs btn-ghost">🧾 Bukti</span></div></div>`).join('')}
         </div></div>` : ''}`,
     tombol: dibatalkan ? [{ teks: 'Tutup', kelas: 'btn-ghost' }] : [
       { teks: '🧾 Nota', kelas: 'btn-ghost', aksi: () => tampilkanStruk(j) },
       ...(sisa > 0 && bolehTerimaBayar() ? [{ teks: '💵 Terima Bayar', kelas: 'btn-primary', aksi: x => { x.tutup(); modalBayarPiutang(j, segarkan); } }] : []),
       { teks: '⋯', kelas: 'btn-ghost', aksi: () => menuLain(j, h) },
     ],
+  });
+  h.body.addEventListener('click', e => {
+    const row = e.target.closest('[data-byr]'); if (!row) return;
+    const byr = get('pembayaran', row.dataset.byr);
+    if (byr) tampilkanBuktiBayar(byr);
   });
 }
 

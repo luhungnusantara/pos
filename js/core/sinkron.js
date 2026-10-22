@@ -131,6 +131,7 @@ async function panggil(jalur, { metode = 'GET', body, token } = {}) {
   if (!res.ok) {
     const e = new Error(isi?.error || `Server menolak (${res.status})`);
     e.status = res.status;
+    e.isi = isi; // keterangan tambahan dari server, mis. tawaran ambil alih nomor
     // 401/403 berarti sesi tidak lagi diterima — bukan gangguan jaringan,
     // jadi mencoba ulang tidak akan menolong sampai pengguna masuk lagi.
     e.sesiDitolak = res.status === 401 || res.status === 403;
@@ -204,10 +205,10 @@ export const tambahCabang = ({ namaToko, nama, phone, password }) =>
 export const daftarPengguna = toko =>
   panggil(`/pos/pengguna${toko ? `?toko=${encodeURIComponent(toko)}` : ''}`);
 
-export const tambahPengguna = ({ nama, phone, password, peran, refId }) =>
+export const tambahPengguna = ({ nama, phone, password, peran, refId, ambilAlih = false }) =>
   panggil('/pos/pengguna', {
     metode: 'POST',
-    body: { nama, phone, password, peran, ref_id: refId, toko_id: cabangAktif() },
+    body: { nama, phone, password, peran, ref_id: refId, toko_id: cabangAktif(), ambil_alih: ambilAlih },
   });
 
 export const ubahAkses = (id, nonaktif) =>

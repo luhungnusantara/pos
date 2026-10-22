@@ -46,6 +46,24 @@ export const num = (n, dec = 0) =>
 
 export const rp = (n, dec = 0) => 'Rp' + num(n, dec);
 
+/** angka jadi kata untuk kwitansi: 1250000 → "satu juta dua ratus lima puluh ribu" */
+export const terbilang = n => {
+  const SATU = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
+  const kata = x =>
+    x < 12 ? SATU[x]
+      : x < 20 ? `${kata(x - 10)} belas`
+        : x < 100 ? `${kata(Math.floor(x / 10))} puluh ${kata(x % 10)}`
+          : x < 200 ? `seratus ${kata(x - 100)}`
+            : x < 1e3 ? `${kata(Math.floor(x / 100))} ratus ${kata(x % 100)}`
+              : x < 2e3 ? `seribu ${kata(x - 1e3)}`
+                : x < 1e6 ? `${kata(Math.floor(x / 1e3))} ribu ${kata(x % 1e3)}`
+                  : x < 1e9 ? `${kata(Math.floor(x / 1e6))} juta ${kata(x % 1e6)}`
+                    : x < 1e12 ? `${kata(Math.floor(x / 1e9))} miliar ${kata(x % 1e9)}`
+                      : `${kata(Math.floor(x / 1e12))} triliun ${kata(x % 1e12)}`;
+  const bulat = Math.floor(Math.abs(toNum(n)));
+  return bulat ? kata(bulat).replace(/\s+/g, ' ').trim() : 'nol';
+};
+
 /** Rp ringkas untuk kartu statistik: Rp1,2 jt */
 export const rpShort = n => {
   const v = toNum(n), a = Math.abs(v), s = v < 0 ? '-' : '';

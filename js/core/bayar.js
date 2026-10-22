@@ -2,6 +2,7 @@
 
 import { bayarPiutang, bayarHutang, sisaPiutang } from './domain.js';
 import { modal, sukses, gagal, pasangRupiah } from './ui.js';
+import { tampilkanBuktiBayar } from './struk.js';
 import { esc, rp, num, toNum, todayISO, fmtTgl } from './utils.js';
 
 export function modalBayarPiutang(jual, onSelesai) {
@@ -34,7 +35,7 @@ export function modalBayarPiutang(jual, onSelesai) {
         teks: 'Simpan Pembayaran', kelas: 'btn-primary', aksi: h => {
           const jumlah = toNum(h.body.querySelector('#jml').value);
           if (jumlah <= 0) return gagal('Jumlah bayar harus lebih dari nol');
-          bayarPiutang({
+          const byr = bayarPiutang({
             penjualanId: jual.id, jumlah,
             tanggal: h.body.querySelector('#tgl').value || todayISO(),
             metode: h.body.querySelector('#metode').value,
@@ -43,6 +44,7 @@ export function modalBayarPiutang(jual, onSelesai) {
           h.tutup();
           sukses(`Pembayaran ${rp(Math.min(jumlah, sisa))} tercatat`);
           onSelesai?.();
+          if (byr) tampilkanBuktiBayar(byr);
         },
       },
     ],
@@ -84,7 +86,7 @@ export function modalBayarHutang(beli, onSelesai) {
         teks: 'Simpan', kelas: 'btn-primary', aksi: h => {
           const jumlah = toNum(h.body.querySelector('#jml').value);
           if (jumlah <= 0) return gagal('Jumlah bayar harus lebih dari nol');
-          bayarHutang({
+          const byr = bayarHutang({
             pembelianId: beli.id, jumlah,
             tanggal: h.body.querySelector('#tgl').value || todayISO(),
             metode: h.body.querySelector('#metode').value,
@@ -93,6 +95,7 @@ export function modalBayarHutang(beli, onSelesai) {
           h.tutup();
           sukses('Pembayaran hutang tercatat');
           onSelesai?.();
+          if (byr) tampilkanBuktiBayar(byr);
         },
       },
     ],

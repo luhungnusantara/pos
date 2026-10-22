@@ -508,6 +508,8 @@ html[data-theme="dark"] .toast{background:#e2e8f0;color:#0f172a}
   .modal-back,.modal-head,.modal-foot{display:none !important}
   .modal{box-shadow:none;max-height:none;max-width:100%;border-radius:0}
   .modal-body{overflow:visible;padding:0}
+  /* dokumen yang dibuka dari modal lain: cetak yang paling atas saja */
+  .modal-root>div:not(:last-child){display:none !important}
 }
 .receipt{font-family:var(--mono);font-size:12px;line-height:1.45;max-width:320px;margin:0 auto;color:#0f172a;background:#fff;padding:10px}
 .receipt .r-c{text-align:center}
@@ -515,6 +517,10 @@ html[data-theme="dark"] .toast{background:#e2e8f0;color:#0f172a}
 .receipt .r-line{border-top:1px dashed #94a3b8;margin:6px 0}
 .receipt .r-row{display:flex;justify-content:space-between;gap:8px}
 .receipt .r-b{font-weight:700}
+.receipt .r-sub{font-size:11px;color:#475569}
+.receipt .r-ttd{display:flex;gap:16px;margin-top:8px;text-align:center}
+.receipt .r-ttd>div{flex:1;min-width:0;overflow-wrap:anywhere}
+.receipt .r-ttd-ruang{height:40px;border-bottom:1px solid #94a3b8;margin:0 6px 4px}
 
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms !important;transition-duration:.01ms !important}
