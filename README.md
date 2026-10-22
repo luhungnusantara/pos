@@ -252,7 +252,7 @@ Belum ada akun bawaan — akun pertama dibuat sendiri:
 **Nomor yang pernah mendaftar sendiri.** Sering terjadi: calon investor atau sales mencoba aplikasi
 dengan mendaftarkan toko sendiri, lalu belakangan pemilik hendak membuatkan akunnya dan nomornya
 ditolak karena *sudah terdaftar*. Bila toko hasil daftar sendiri itu **masih kosong** — belum ada
-data apa pun, tidak ada akun lain, dan tidak bernaung di bawah pusat — aplikasi menawarkan untuk
+data apa pun selain pengaturan toko, tidak ada akun lain, dan tidak bernaung di bawah pusat — aplikasi menawarkan untuk
 **memindahkan akun itu** ke toko Anda dengan peran yang dipilih. Setelah disetujui, toko kosongnya
 dihapus dan kata sandinya diganti dengan yang Anda isi. Toko yang sudah berisi data tidak pernah
 ditawarkan; nomor itu tetap dianggap milik orang lain. Nomor HP harus diketik **persis sama**
