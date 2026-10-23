@@ -117,7 +117,7 @@ function formCabang(ulang) {
       { name: 'namaToko', label: 'Nama cabang / distributor', wajib: true, lebar: 'full' },
       { name: 'nama', label: 'Nama pemilik cabang', wajib: true, lebar: 'full' },
       { name: 'phone', label: 'Nomor HP pemilik', tipe: 'tel', wajib: true, lebar: 'full',
-        hint: 'Dipakai untuk masuk. Format 628xxxxxxxxx' },
+        hint: 'Dipakai untuk masuk. Boleh 0812…, 62812…, atau +62 812…' },
       { name: 'password', label: 'Kata sandi (min. 6 karakter)', tipe: 'password', wajib: true, lebar: 'full' },
     ],
     // modal ditahan sampai server menjawab, agar isian tidak hilang bila ditolak

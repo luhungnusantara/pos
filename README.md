@@ -265,8 +265,11 @@ ditolak karena *sudah terdaftar*. Bila toko hasil daftar sendiri itu **masih kos
 data apa pun selain pengaturan toko, tidak ada akun lain, dan tidak bernaung di bawah pusat — aplikasi menawarkan untuk
 **memindahkan akun itu** ke toko Anda dengan peran yang dipilih. Setelah disetujui, toko kosongnya
 dihapus dan kata sandinya diganti dengan yang Anda isi. Toko yang sudah berisi data tidak pernah
-ditawarkan; nomor itu tetap dianggap milik orang lain. Nomor HP harus diketik **persis sama**
-dengan saat ia mendaftar (server belum menyeragamkan format `08…`/`628…`/`+62…`).
+ditawarkan; nomor itu tetap dianggap milik orang lain.
+
+**Format nomor HP bebas.** `0812-2175-3344`, `6281221753344`, dan `+62 812 2175 3344` dianggap
+nomor yang sama, baik saat masuk maupun saat membuatkan akun. Akun baru disimpan dalam bentuk
+baku `628…`.
 
 Akses bisa **dicabut dan dipulihkan** kapan saja dari kartu yang sama.
 Pencabutan berlaku seketika, bahkan pada perangkat yang sudah terlanjur masuk —

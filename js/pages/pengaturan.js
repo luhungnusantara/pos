@@ -107,7 +107,7 @@ function formAkunBaru(view) {
         hint: 'Sales & agen hanya melihat datanya sendiri. Keuangan & investor melihat seluruh toko.' },
       { name: 'nama', label: 'Nama pemegang akun', wajib: true, lebar: 'full' },
       { name: 'phone', label: 'Nomor HP (dipakai untuk masuk)', tipe: 'tel', wajib: true, lebar: 'full',
-        hint: 'Format 628xxxxxxxxx' },
+        hint: 'Boleh 0812…, 62812…, atau +62 812… — semuanya dianggap nomor yang sama' },
       { name: 'password', label: 'Kata sandi (min. 6 karakter)', tipe: 'password', wajib: true, lebar: 'full' },
     ],
     /* formModal hanya menahan modal bila onSimpan mengembalikan false — Promise

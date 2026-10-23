@@ -59,7 +59,7 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
           <div class="field">
             <label class="lbl">Nomor HP</label>
             <input class="input" id="gPhone" type="tel" inputmode="tel"
-                   autocomplete="username" placeholder="628xxxxxxxxx">
+                   autocomplete="username" placeholder="0812xxxxxxxx">
           </div>
           <div class="field">
             <label class="lbl">Kata sandi</label>
