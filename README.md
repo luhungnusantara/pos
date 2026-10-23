@@ -238,19 +238,29 @@ tidak ada perangkat yang bisa diarahkan ke server lain.
 
 ### Membuat akun
 
-Belum ada akun bawaan — akun pertama dibuat sendiri:
+**Pendaftaran mandiri ditutup.** Layar masuk hanya berisi form *Masuk*; orang yang
+belum punya akun diminta menghubungi pemilik toko. Server juga menolak pendaftaran
+toko maupun pusat baru begitu sudah ada satu akun, karena tanpa verifikasi nomor HP
+siapa pun bisa memesan nomor orang lain dan menimbun toko kosong. Akun baru lahir
+hanya dari dua jalur:
 
-1. Di layar masuk, tekan **"Belum punya akun? Daftarkan toko baru"**. Isi alamat
-   server, nama toko, nama pemilik, nomor HP, dan kata sandi. Nomor HP dan kata
-   sandi itulah kredensial **Pemilik** Anda.
-2. Setelah masuk, buka **Pengaturan → Akun Pengguna** untuk membuatkan akun
-   Sales, Agen, Keuangan, atau Investor. Akun sales dan agen ditautkan ke data
+1. **Pemilik** membuatkan akun lewat **Pengaturan → Akun Pengguna** (lihat di bawah).
+2. **Pusat** membuka cabang beserta akun pemiliknya lewat layar Pusat.
+
+Akun pertama pada server yang basis datanya masih kosong dibuat sekali lewat API
+`POST /pos/daftar` (lihat README luhungbackend).
+
+Langkah membuatkan akun:
+
+1. Masuk sebagai Pemilik.
+2. Buka buka **Pengaturan → Akun Pengguna** untuk membuatkan akun
+   untuk membuatkan akun Sales, Agen, Keuangan, atau Investor. Akun sales dan agen ditautkan ke data
    Sales/Mitra yang sudah ada, dipilih dari daftar — bukan diketik — supaya
    penyaringan datanya tidak diam-diam meleset karena id salah ketik.
 3. Berikan nomor HP dan kata sandinya kepada yang bersangkutan.
 
-**Nomor yang pernah mendaftar sendiri.** Sering terjadi: calon investor atau sales mencoba aplikasi
-dengan mendaftarkan toko sendiri, lalu belakangan pemilik hendak membuatkan akunnya dan nomornya
+**Nomor yang pernah mendaftar sendiri** (sebelum pendaftaran mandiri ditutup). Calon investor
+atau sales sempat mencoba aplikasi dengan mendaftarkan toko sendiri, lalu belakangan pemilik hendak membuatkan akunnya dan nomornya
 ditolak karena *sudah terdaftar*. Bila toko hasil daftar sendiri itu **masih kosong** — belum ada
 data apa pun selain pengaturan toko, tidak ada akun lain, dan tidak bernaung di bawah pusat — aplikasi menawarkan untuk
 **memindahkan akun itu** ke toko Anda dengan peran yang dipilih. Setelah disetujui, toko kosongnya

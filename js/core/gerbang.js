@@ -6,7 +6,7 @@
 
 import { db } from './store.js';
 import { esc } from './utils.js';
-import { masuk, daftar } from './sinkron.js';
+import { masuk } from './sinkron.js';
 import { sesiTersimpan, terapkanPeranDariAkun, setPeranTerkunci } from './sesi.js';
 
 const PERAN_TEKS = { owner: 'Pemilik', sales: 'Sales', mitra: 'Agen / Reseller' };
@@ -40,63 +40,39 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
     const el = akar();
     document.body.classList.add('terkunci');
 
-    // 'masuk' untuk akun yang sudah ada, 'daftar' untuk toko baru
-    let mode = 'masuk';
-
+    /* Hanya ada jalan masuk. Pendaftaran mandiri ditutup di server: akun baru
+       dibuatkan pemilik (Pengaturan → Akun Pengguna) atau pusat (Buka Cabang). */
     const gambar = () => {
-      const daftarMode = mode === 'daftar';
-
       el.innerHTML = `
         <div class="gerbang-kotak">
           <div class="gerbang-kepala">
             <div class="brand-logo"><img src="img/mark-putih.svg" alt="" width="26" height="26"></div>
             <div>
               <strong>${esc(db.pengaturan.namaToko || 'POS')}</strong>
-              <div class="muted xs">${daftarMode
-                ? 'Daftarkan toko & buat akun pemilik'
-                : 'Masuk untuk mulai mencatat'}</div>
+              <div class="muted xs">Masuk untuk mulai mencatat</div>
             </div>
           </div>
 
-          ${sebabKedaluwarsa && !daftarMode ? `<div class="hint warn mb12">⏳ Sesi Anda sudah berakhir.
+          ${sebabKedaluwarsa ? `<div class="hint warn mb12">⏳ Sesi Anda sudah berakhir.
             Data di perangkat ini <b>tetap utuh</b> — masuk lagi untuk melanjutkan.</div>` : ''}
-
-          ${daftarMode ? `
-          <div class="field">
-            <label class="lbl">Nama toko / distributor</label>
-            <input class="input" id="gToko" autocomplete="organization"
-                   value="${esc(db.pengaturan.namaToko || '')}">
-          </div>
-          <div class="field">
-            <label class="lbl">Nama pemilik</label>
-            <input class="input" id="gNama" autocomplete="name"
-                   value="${esc(db.pengaturan.pemilik || '')}">
-          </div>` : ''}
 
           <div class="field">
             <label class="lbl">Nomor HP</label>
             <input class="input" id="gPhone" type="tel" inputmode="tel"
                    autocomplete="username" placeholder="628xxxxxxxxx">
-            ${daftarMode ? '<div class="hint">Nomor ini yang dipakai untuk masuk nanti.</div>' : ''}
           </div>
           <div class="field">
-            <label class="lbl">Kata sandi${daftarMode ? ' (min. 6 karakter)' : ''}</label>
-            <input class="input" id="gSandi" type="password"
-                   autocomplete="${daftarMode ? 'new-password' : 'current-password'}">
+            <label class="lbl">Kata sandi</label>
+            <input class="input" id="gSandi" type="password" autocomplete="current-password">
           </div>
 
           <div class="err mb12" id="gGalat" hidden></div>
 
-          <button class="btn btn-primary btn-block" id="gKirim">${
-            daftarMode ? 'Daftarkan Toko' : 'Masuk'}</button>
+          <button class="btn btn-primary btn-block" id="gKirim">Masuk</button>
 
           <div class="gerbang-kaki">
-            <button class="tautan" id="gTukar">${daftarMode
-              ? 'Sudah punya akun? Masuk'
-              : 'Belum punya akun? Daftarkan toko baru'}</button>
-            <div class="hint mt8">${daftarMode
-              ? 'Akun pertama otomatis menjadi <b>Pemilik</b>. Akun untuk sales dan agen dibuat setelah masuk, lewat Pengaturan → Akun Pengguna.'
-              : 'Butuh jaringan untuk masuk pertama kali. Sesudah itu aplikasi tetap bisa dipakai tanpa sinyal.'}</div>
+            <div class="hint"><b>Belum punya akun?</b> Minta pemilik toko membuatkannya untuk Anda.</div>
+            <div class="hint mt8">Butuh jaringan untuk masuk pertama kali. Sesudah itu aplikasi tetap bisa dipakai tanpa sinyal.</div>
           </div>
         </div>`;
 
@@ -113,7 +89,7 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
     const sibuk = on => {
       el.querySelectorAll('button,input').forEach(b => { b.disabled = on; });
       const t = el.querySelector('#gKirim');
-      if (t) t.textContent = on ? 'Memeriksa…' : (mode === 'daftar' ? 'Daftarkan Toko' : 'Masuk');
+      if (t) t.textContent = on ? 'Memeriksa…' : 'Masuk';
     };
 
     const sukses = async () => {
@@ -128,34 +104,19 @@ export function bukaGerbang({ sebabKedaluwarsa = false } = {}) {
     };
 
     function pasang() {
-      el.querySelector('#gTukar').onclick = () => {
-        mode = mode === 'masuk' ? 'daftar' : 'masuk';
-        gambar();
-      };
-
       el.querySelector('#gKirim').onclick = async () => {
         const phone = el.querySelector('#gPhone').value.trim();
         const sandi = el.querySelector('#gSandi').value;
         if (!phone || !sandi) return galat('Nomor HP dan kata sandi wajib diisi.');
 
-        const daftarMode = mode === 'daftar';
-        let namaToko = '', nama = '';
-        if (daftarMode) {
-          namaToko = el.querySelector('#gToko').value.trim();
-          nama = el.querySelector('#gNama').value.trim();
-          if (!namaToko || !nama) return galat('Nama toko dan nama pemilik wajib diisi.');
-          if (sandi.length < 6) return galat('Kata sandi minimal 6 karakter.');
-        }
-
         galat('');
         sibuk(true);
         try {
-          if (daftarMode) await daftar({ nama_toko: namaToko, nama, phone, password: sandi });
-          else await masuk(phone, sandi);
+          await masuk(phone, sandi);
           await sukses();
         } catch (e) {
           sibuk(false);
-          galat(e.message || (daftarMode ? 'Gagal mendaftar.' : 'Gagal masuk.'));
+          galat(e.message || 'Gagal masuk.');
         }
       };
 

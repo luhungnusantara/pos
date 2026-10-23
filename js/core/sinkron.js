@@ -151,19 +151,6 @@ export async function masuk(phone, password) {
   return hasil;
 }
 
-export async function daftar({ nama_toko, nama, phone, password }) {
-  const hasil = await panggil('/pos/daftar', {
-    metode: 'POST', token: '',
-    body: { nama_toko, nama, phone, password },
-  });
-  await simpanKunci('token', hasil.token);
-  await simpanKunci('akun', hasil.user);
-  await simpanKunci('toko', hasil.toko);
-  await simpanKunci('pusat', hasil.pusat);
-  await sesudahMasuk(hasil);
-  return hasil;
-}
-
 export async function keluar() {
   await hapusKunci('token');
   await hapusKunci('akun');
