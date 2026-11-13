@@ -281,19 +281,23 @@ Untuk pihak yang perlu melihat angka toko tanpa ikut berjualan:
 
 | | 💼 Keuangan | 📈 Investor |
 |---|---|---|
-| Menu | Dashboard, Riwayat Penjualan, Konsinyasi, Pembelian, Stok Keluar, Piutang & Hutang, Produk, Kartu Stok, Agen & Reseller, Komisi, Kas, Laporan | Dashboard, Laporan |
+| Menu | Dashboard, Riwayat Penjualan, Konsinyasi, Pembelian, Stok Keluar, Piutang & Hutang, Produk, Kartu Stok, Agen & Reseller, Komisi, Kas, Laporan | semua menu Keuangan **ditambah** Stok Opname & Data Sales — seluruh menu kecuali Kasir dan Pengaturan |
 | Angka yang tampil | seluruh toko, termasuk HPP, laba, dan kas | seluruh toko, termasuk HPP, laba, dan kas |
 | Boleh mencatat | kas masuk/keluar, pelunasan piutang, pembayaran hutang, pembayaran komisi | tidak ada |
-| Tidak boleh | menjual, menitip, stok masuk/keluar/opname, mengubah produk/harga/mitra/sales, mengelola akun | — |
+| Tidak boleh | menjual, menitip, stok masuk/keluar/opname, mengubah produk/harga/mitra/sales, mengubah saldo awal kas, mengelola akun | apa pun: tombol tambah, ubah, hapus, bayar, dan batalkan tidak muncul |
 
 Pembatasan ini **ditegakkan server**. Akun keuangan hanya bisa mengubah kolom
 pembayaran (`dibayar`, status komisi) pada transaksi yang sudah ada — membuat
 penjualan baru atau mengubah totalnya ditolak, walaupun aplikasinya diutak-atik.
 Akun investor tidak bisa menyetor apa pun.
 
+Investor bisa membuka detail nota, titipan, pembelian, dan kartu stok, serta
+mencetak atau membagikan nota, Surat Titip Barang, dan Bukti Pembayaran — semuanya
+hanya membaca. **Kasir** tidak dibuka karena isinya murni form penjualan, dan
+**Pengaturan** tidak dibuka karena berisi daftar akun pengguna dan tombol hapus data.
+
 > ⚠️ Seperti peran lain, seluruh data toko tetap terunduh ke HP investor supaya
-> aplikasi bisa dibuka tanpa sinyal. Di layar yang tampil hanya Dashboard dan
-> Laporan, tetapi data mentahnya (nama pelanggan, tiap nota) ada di perangkat.
+> aplikasi bisa dibuka tanpa sinyal, termasuk nama pelanggan dan tiap nota.
 
 Tawaran **data contoh** pada perangkat yang masih kosong hanya muncul untuk
 Pemilik. Perangkat peran lain kosong karena belum selesai menarik data tokonya,

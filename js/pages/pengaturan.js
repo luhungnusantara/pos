@@ -96,7 +96,7 @@ function formAkunBaru(view) {
   // keuangan & investor melihat seluruh toko, jadi tidak ditautkan ke data siapa pun
   const opsiLihatSemua = [
     { value: 'keuangan:', label: 'Keuangan — lihat semua, catat kas & pembayaran' },
-    { value: 'investor:', label: 'Investor — hanya lihat dashboard & laporan' },
+    { value: 'investor:', label: 'Investor — lihat semua menu, tidak bisa mengubah' },
   ];
   const opsi = [...opsiSales, ...opsiMitra, ...opsiLihatSemua];
 

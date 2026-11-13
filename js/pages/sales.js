@@ -5,6 +5,7 @@ import {
   setJudul, setTopbar, setFab, formModal, konfirmasi, sukses, gagal, kosongState, statTile, badge, modal, avatarEl,
 } from '../core/ui.js';
 import { segarkan, pergi } from '../core/router.js';
+import { bolehUbah, bolehKeuangan } from '../core/peran.js';
 import { esc, rp, num, toNum, cocok, sum, debounce, sortBy, awalBulan, akhirBulan } from '../core/utils.js';
 
 let filter = { q: '', periode: 'bulan' };
@@ -85,7 +86,9 @@ function detailSales(s) {
         </div></div>` : ''}`,
     tombol: [
       { teks: '🎯 Rincian Komisi', kelas: 'btn-ghost', aksi: h => { h.tutup(); pergi(`komisi/${s.id}`); } },
-      { teks: '✏️ Ubah', kelas: 'btn-primary', aksi: h => { h.tutup(); formSales(s); } },
+      bolehUbah()
+        ? { teks: '✏️ Ubah', kelas: 'btn-primary', aksi: h => { h.tutup(); formSales(s); } }
+        : { teks: 'Tutup', kelas: 'btn-primary' },
     ],
   });
 }
@@ -106,8 +109,8 @@ async function hapusSales(s) {
 
 export function render(view) {
   setJudul('Data Sales', `${db.sales.filter(s => s.aktif !== false).length} sales aktif`);
-  setTopbar([{ teks: 'Sales Baru', ikon: '＋', onClick: () => formSales() }]);
-  setFab({ ikon: '＋', teks: 'Sales baru', onClick: () => formSales() });
+  setTopbar(bolehUbah() ? [{ teks: 'Sales Baru', ikon: '＋', onClick: () => formSales() }] : []);
+  setFab(bolehUbah() ? { ikon: '＋', teks: 'Sales baru', onClick: () => formSales() } : null);
 
   const { dari, sampai, label } = rentang();
   const rekap = rekapKomisi({ dari, sampai });
@@ -140,8 +143,8 @@ export function render(view) {
 
     if (!arr.length) {
       daftar.innerHTML = kosongState('👤', 'Belum ada sales',
-        'Tambahkan sales beserta skema komisinya untuk mulai menghitung komisi otomatis.',
-        '<button class="btn btn-primary" id="tk">＋ Tambah Sales</button>');
+        bolehUbah() ? 'Tambahkan sales beserta skema komisinya untuk mulai menghitung komisi otomatis.' : '',
+        bolehUbah() ? '<button class="btn btn-primary" id="tk">＋ Tambah Sales</button>' : '');
       daftar.querySelector('#tk')?.addEventListener('click', () => formSales());
       return;
     }
@@ -177,9 +180,9 @@ export function render(view) {
         judul: s.nama,
         isi: `<div class="list">
           <button class="row-item" data-a="detail"><span class="ico">👁️</span><div class="ri-main"><div class="ri-title">Detail & capaian</div></div></button>
-          <button class="row-item" data-a="komisi"><span class="ico">🎯</span><div class="ri-main"><div class="ri-title">Rincian & bayar komisi</div></div></button>
-          <button class="row-item" data-a="ubah"><span class="ico">✏️</span><div class="ri-main"><div class="ri-title">Ubah data</div></div></button>
-          <button class="row-item" data-a="hapus"><span class="ico">🗑️</span><div class="ri-main"><div class="ri-title" style="color:var(--bad)">Hapus sales</div></div></button>
+          <button class="row-item" data-a="komisi"><span class="ico">🎯</span><div class="ri-main"><div class="ri-title">${bolehKeuangan() ? 'Rincian & bayar komisi' : 'Rincian komisi'}</div></div></button>
+          ${bolehUbah() ? `<button class="row-item" data-a="ubah"><span class="ico">✏️</span><div class="ri-main"><div class="ri-title">Ubah data</div></div></button>
+          <button class="row-item" data-a="hapus"><span class="ico">🗑️</span><div class="ri-main"><div class="ri-title" style="color:var(--bad)">Hapus sales</div></div></button>` : ''}
         </div>`,
         onBuka: (body, h) => body.addEventListener('click', ev => {
           const b = ev.target.closest('[data-a]'); if (!b) return;

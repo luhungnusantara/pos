@@ -88,7 +88,7 @@ function halamanRekap(view) {
               <div class="bar"><i class="${r.capaian >= 100 ? 'ok' : r.capaian >= 60 ? '' : 'warn'}" style="width:${Math.min(100, r.capaian)}%"></i></div>
             </div>` : ''}
         </div>
-        ${r.pending > 0 ? `<div class="card-foot">
+        ${r.pending > 0 && bolehKeuangan() ? `<div class="card-foot">
           <button class="btn btn-primary btn-block" data-bayar="${s.id}">💵 Bayar Komisi ${rp(r.pending)}</button></div>` : ''}
       </div>`;
     }).join('');

@@ -5,6 +5,7 @@ import {
   setJudul, setTopbar, setFab, modal, konfirmasi, sukses, ingat, kosongState, statTile, badge,
 } from '../core/ui.js';
 import { pergi } from '../core/router.js';
+import { bolehKelola } from '../core/peran.js';
 import {
   esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, todayISO, round2, unduh, toCSV,
 } from '../core/utils.js';
@@ -14,8 +15,8 @@ import {
    ========================================================= */
 function halamanDaftar(view) {
   setJudul('Stok Opname', `${db.opname.length} riwayat opname`);
-  setTopbar([{ teks: 'Opname Baru', ikon: '＋', onClick: () => pergi('opname/baru') }]);
-  setFab({ ikon: '📋', teks: 'Opname baru', onClick: () => pergi('opname/baru') });
+  setTopbar(bolehKelola() ? [{ teks: 'Opname Baru', ikon: '＋', onClick: () => pergi('opname/baru') }] : []);
+  setFab(bolehKelola() ? { ikon: '📋', teks: 'Opname baru', onClick: () => pergi('opname/baru') } : null);
 
   const terakhir = db.opname[0];
   const selisihTerakhir = terakhir ? terakhir.nilaiSelisih : 0;
@@ -36,14 +37,14 @@ function halamanDaftar(view) {
         <div><div class="b sm">Apa itu stok opname?</div>
           <div class="xs muted" style="max-width:520px">Menghitung stok fisik di gudang lalu membandingkannya dengan catatan sistem.
           Selisihnya dicatat sebagai penyesuaian sehingga laporan stok dan laba tetap akurat.</div></div>
-        <button class="btn btn-primary" id="mulai">📋 Mulai Opname</button>
+        ${bolehKelola() ? '<button class="btn btn-primary" id="mulai">📋 Mulai Opname</button>' : ''}
       </div>
     </div></div>
 
     <div class="section-title">Riwayat Opname</div>
     <div class="card"><div class="list" id="daftar"></div></div>`;
 
-  view.querySelector('#mulai').onclick = () => pergi('opname/baru');
+  if (bolehKelola()) view.querySelector('#mulai').onclick = () => pergi('opname/baru');
 
   const box = view.querySelector('#daftar');
   if (!db.opname.length) {
@@ -274,6 +275,6 @@ function halamanBaru(view) {
 }
 
 export function render(view, params = []) {
-  if (params[0] === 'baru') return halamanBaru(view);
+  if (params[0] === 'baru' && bolehKelola()) return halamanBaru(view);
   return halamanDaftar(view);
 }

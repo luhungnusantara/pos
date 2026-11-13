@@ -88,6 +88,8 @@ const BOTTOM_PERAN = {
   ],
   investor: [
     { id: 'dashboard', teks: 'Beranda', ikon: '📊' },
+    { id: 'penjualan', teks: 'Penjualan', ikon: '💰' },
+    { id: 'stok', teks: 'Stok', ikon: '📦' },
     { id: 'laporan', teks: 'Laporan', ikon: '📈' },
     { id: '_menu', teks: 'Menu', ikon: '☰' },
   ],

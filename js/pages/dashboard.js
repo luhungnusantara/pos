@@ -117,6 +117,16 @@ const PINTASAN_KEUANGAN = [
   { ke: 'laporan', ikon: '📈', teks: 'Laporan', warna: 'var(--violet-soft)', ink: 'var(--violet)' },
 ];
 
+// investor hanya melihat, jadi pintasannya ke halaman baca saja
+const PINTASAN_INVESTOR = [
+  { ke: 'penjualan', ikon: '💰', teks: 'Penjualan', warna: 'var(--primary-soft)', ink: 'var(--primary)' },
+  { ke: 'konsinyasi', ikon: '🤝', teks: 'Titipan', warna: 'var(--violet-soft)', ink: 'var(--violet)' },
+  { ke: 'stok', ikon: '📦', teks: 'Stok', warna: 'var(--info-soft)', ink: 'var(--info)' },
+  { ke: 'piutang', ikon: '📌', teks: 'Piutang', warna: 'var(--warn-soft)', ink: 'var(--warn)' },
+  { ke: 'kas', ikon: '🏦', teks: 'Kas', warna: 'var(--ok-soft)', ink: 'var(--ok)' },
+  { ke: 'laporan', ikon: '📈', teks: 'Laporan', warna: 'var(--bad-soft)', ink: 'var(--bad)' },
+];
+
 function dashboardKerja(view) {
   // tampilan seluruh toko: pemilik, pusat, keuangan, dan investor
   const owner = bolehLihatKas();
@@ -149,7 +159,7 @@ function dashboardKerja(view) {
   setFab(bolehTransaksi() ? { ikon: '🧾', teks: 'Penjualan baru', onClick: () => pergi('kasir') } : null);
 
   const pintasan = bolehKelola() ? PINTASAN_OWNER : adalah('keuangan') ? PINTASAN_KEUANGAN
-    : adalah('sales') ? PINTASAN_SALES : [];
+    : adalah('sales') ? PINTASAN_SALES : adalah('investor') ? PINTASAN_INVESTOR : [];
   const belumAdaData = bolehKelola() && !db.produk.length;
 
   view.innerHTML = `

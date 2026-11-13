@@ -6,6 +6,7 @@ import {
 } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan } from '../core/router.js';
+import { bolehKeuangan, bolehUbah } from '../core/peran.js';
 import {
   esc, rp, toNum, cocok, sum, debounce, fmtTgl, sortBy, todayISO, groupBy, unduh, toCSV,
 } from '../core/utils.js';
@@ -54,7 +55,7 @@ function detailKas(k) {
         <div class="kv"><span class="k">Keterangan</span><span class="v" style="max-width:60%">${esc(k.keterangan || '-')}</span></div>
       </div></div>
       ${otomatis ? '<div class="hint mt12">ℹ️ Catatan ini dibuat otomatis dari transaksi. Untuk mengubahnya, batalkan atau ubah transaksi asalnya.</div>' : ''}`,
-    tombol: otomatis ? [{ teks: 'Tutup', kelas: 'btn-primary' }] : [
+    tombol: otomatis || !bolehKeuangan() ? [{ teks: 'Tutup', kelas: 'btn-primary' }] : [
       {
         teks: '🗑️ Hapus', kelas: 'btn-danger', aksi: async h => {
           const ya = await konfirmasi({ judul: 'Hapus catatan kas?', bahaya: true, ok: 'Hapus', pesan: `${esc(k.keterangan)} — ${rp(k.jumlah)}` });
@@ -75,11 +76,11 @@ export function render(view) {
   const keluar = sum(semua.filter(k => k.arah === 'keluar'), k => k.jumlah);
 
   setJudul('Buku Kas', `${label} · saldo ${rp(saldoKas())}`);
-  setTopbar([
+  setTopbar(bolehKeuangan() ? [
     { teks: 'Masuk', ikon: '💵', kelas: 'btn-sm btn-soft', onClick: () => formKas('masuk') },
     { teks: 'Keluar', ikon: '💸', kelas: 'btn-sm btn-primary', onClick: () => formKas('keluar') },
-  ]);
-  setFab({
+  ] : []);
+  setFab(!bolehKeuangan() ? null : {
     ikon: '＋', teks: 'Catat kas', onClick: () => modal({
       judul: 'Catat Kas',
       isi: `<div class="list">
@@ -129,7 +130,9 @@ export function render(view) {
     <div class="chips mb12" id="chipArah">
       ${[['semua', 'Semua'], ['masuk', 'Masuk'], ['keluar', 'Keluar']]
         .map(([v, t]) => `<button class="chip ${f.arah === v ? 'active' : ''}" data-v="${v}">${t}</button>`).join('')}
-      <button class="chip" id="saldoAwal">⚙️ Saldo awal: ${rp(db.pengaturan.saldoAwalKas)}</button>
+      ${bolehUbah()
+        ? `<button class="chip" id="saldoAwal">⚙️ Saldo awal: ${rp(db.pengaturan.saldoAwalKas)}</button>`
+        : `<span class="chip">Saldo awal: ${rp(db.pengaturan.saldoAwalKas)}</span>`}
     </div>
 
     <div id="daftar"></div>`;
@@ -181,7 +184,8 @@ export function render(view) {
     view.querySelectorAll('#chipArah .chip[data-v]').forEach(x => x.classList.toggle('active', x === c));
     gambar();
   });
-  view.querySelector('#saldoAwal').onclick = () => {
+  // saldo awal ada di pengaturan, yang hanya boleh diubah pemilik
+  if (bolehUbah()) view.querySelector('#saldoAwal').onclick = () => {
     formModal({
       judul: 'Saldo Awal Kas',
       fields: [{ name: 'saldoAwalKas', label: 'Saldo Awal', tipe: 'rupiah', hint: 'Uang kas sebelum aplikasi ini dipakai' }],

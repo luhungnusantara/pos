@@ -8,7 +8,7 @@ export const PERAN = {
   pusat: { label: 'Pusat', ikon: '🏛️', warna: '', ket: 'Seluruh cabang, satu per satu' },
   owner: { label: 'Pemilik', ikon: '👑', warna: '', ket: 'Akses penuh ke seluruh menu' },
   keuangan: { label: 'Keuangan', ikon: '💼', warna: 'info', ket: 'Lihat semua angka; catat kas & pembayaran' },
-  investor: { label: 'Investor', ikon: '📈', warna: 'violet', ket: 'Hanya melihat dashboard & laporan' },
+  investor: { label: 'Investor', ikon: '📈', warna: 'violet', ket: 'Melihat seluruh menu, tanpa bisa mengubah' },
   sales: { label: 'Sales', ikon: '🧑‍💼', warna: 'info', ket: 'Hanya mitra binaan & komisi sendiri' },
   mitra: { label: 'Agen / Reseller', ikon: '🏪', warna: 'violet', ket: 'Hanya titipan, nota, dan tagihan sendiri' },
 };
@@ -23,7 +23,12 @@ const AKSES = {
   // data induk, dan tidak mengelola akun (Pengaturan)
   keuangan: ['dashboard', 'penjualan', 'konsinyasi', 'pembelian', 'keluar', 'piutang',
     'produk', 'stok', 'mitra', 'komisi', 'kas', 'laporan'],
-  investor: ['dashboard', 'laporan'],
+  // investor melihat semua yang dilihat pemilik, tetapi tidak bisa mengubah apa
+  // pun: tombol tulis disembunyikan lewat bolehUbah/bolehTransaksi/bolehKeuangan,
+  // dan server menolak setiap kiriman dari akun investor. Kasir murni form jual,
+  // Pengaturan berisi akun pengguna & reset data — keduanya tidak dibuka.
+  investor: ['dashboard', 'penjualan', 'konsinyasi', 'pembelian', 'keluar', 'opname', 'piutang',
+    'produk', 'stok', 'mitra', 'sales', 'komisi', 'kas', 'laporan'],
 };
 
 /* ---------- keadaan sesi ---------- */
