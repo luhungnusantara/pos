@@ -1,5 +1,5 @@
 /* ui.js — komponen antarmuka: toast, modal, form, pemilih item */
-import { esc, toNum, toInt, num, $, $$, cocok, debounce, initial } from './utils.js';
+import { esc, toNum, toInt, num, $, $$, cocok, debounce, initial, unduh } from './utils.js';
 import { db } from './store.js';
 
 /** nama yang dipakai pada judul tab; jatuh ke nama merek bila belum diisi */
@@ -33,6 +33,28 @@ export function toast(pesan, tipe = '', ms = 2600, aksi = null) {
 
 export const sukses = m => toast(m, 'ok');
 export const gagal = m => toast(m, 'bad');
+
+/**
+ * Ekspor berkas (CSV laporan, cadangan) lewat menu berbagi perangkat, supaya di HP
+ * bisa langsung dikirim ke WhatsApp atau disimpan ke Files/Drive. Unduhan biasa
+ * sulit ditemukan di HP — di iPhone yang membuka aplikasi dari layar utama,
+ * berkasnya malah hanya ditampilkan, tidak tersimpan.
+ *
+ * Di PC tetap diunduh: menu berbagi Windows/macOS tidak punya pilihan simpan.
+ * Panggil langsung dari klik, tanpa await sebelumnya — navigator.share hanya
+ * mau jalan sesaat setelah pengguna mengetuk.
+ */
+export async function bagikanBerkas(nama, isi, tipe, pesan) {
+  const berkas = new File([isi], nama, { type: tipe });
+  const layarSentuh = matchMedia('(pointer: coarse)').matches;
+  if (layarSentuh && navigator.canShare?.({ files: [berkas] })) {
+    try { await navigator.share({ files: [berkas], title: nama }); return; } catch (e) {
+      if (e.name === 'AbortError') return; // pengguna menutup menu berbagi
+    }
+  }
+  unduh(nama, isi, tipe);
+  sukses(`${pesan} — tersimpan di folder Download`);
+}
 export const ingat = m => toast(m, 'warn');
 
 /* =========================================================

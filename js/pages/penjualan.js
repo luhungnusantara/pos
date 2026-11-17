@@ -2,7 +2,7 @@
 import { db, get } from '../core/store.js';
 import { sisaPiutang, statusBayar, batalkanPenjualan } from '../core/domain.js';
 import {
-  setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, kosongState, statTile, badge,
+  setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, kosongState, statTile, badge, bagikanBerkas,
 } from '../core/ui.js';
 import { tampilkanStruk, bagikanStruk, tampilkanBuktiBayar, noBukti } from '../core/struk.js';
 import { modalBayarPiutang } from '../core/bayar.js';
@@ -11,7 +11,7 @@ import { segarkan, pergi } from '../core/router.js';
 import { bolehKelola, bolehLihatModal, bolehTransaksi, bolehTerimaBayar, filterPenjualan } from '../core/peran.js';
 import { kunciTertunda, onSinkron } from '../core/sinkron.js';
 import {
-  esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, unduh, toCSV, todayISO,
+  esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, toCSV, todayISO,
 } from '../core/utils.js';
 
 let f = { kode: '30hari', dari: todayISO(), sampai: todayISO(), q: '', jenis: 'semua', status: 'semua' };
@@ -147,7 +147,7 @@ export function render(view) {
 
   setJudul('Riwayat Penjualan', `${label} · ${aktif.length} transaksi`);
   setTopbar([
-    { teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: () => eksporCSV(arr) },
+    { teks: 'Ekspor', ikon: '📤', kelas: 'btn-ghost btn-sm', onClick: () => eksporCSV(arr) },
     ...(bolehTransaksi() ? [{ teks: 'Jual', ikon: '＋', onClick: () => pergi('kasir') }] : []),
   ]);
   setFab(bolehTransaksi() ? { ikon: '＋', teks: 'Penjualan baru', onClick: () => pergi('kasir') } : null);
@@ -260,6 +260,5 @@ function eksporCSV(arr) {
       TotalNota: j.total, Dibayar: j.dibayar, Sisa: sisaPiutang(j), Status: j.status,
     };
   }));
-  unduh(`penjualan-${todayISO()}.csv`, toCSV(baris), 'text/csv');
-  sukses('Data penjualan diekspor');
+  bagikanBerkas(`penjualan-${todayISO()}.csv`, toCSV(baris), 'text/csv', 'Data penjualan diekspor');
 }

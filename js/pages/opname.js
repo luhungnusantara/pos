@@ -2,12 +2,12 @@
 import { db, get } from '../core/store.js';
 import { simpanOpname, stokGudang, stokKonsinyasi } from '../core/domain.js';
 import {
-  setJudul, setTopbar, setFab, modal, konfirmasi, sukses, ingat, kosongState, statTile, badge,
+  setJudul, setTopbar, setFab, modal, konfirmasi, sukses, ingat, kosongState, statTile, badge, bagikanBerkas,
 } from '../core/ui.js';
 import { pergi } from '../core/router.js';
 import { bolehKelola } from '../core/peran.js';
 import {
-  esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, todayISO, round2, unduh, toCSV,
+  esc, rp, num, toNum, cocok, sum, debounce, fmtTgl, fmtTglPendek, sortBy, todayISO, round2, toCSV,
 } from '../core/utils.js';
 
 /* =========================================================
@@ -106,12 +106,11 @@ function detail(o) {
       </table></div></div>`,
     tombol: [
       {
-        teks: '⬇️ Ekspor CSV', kelas: 'btn-ghost', aksi: () => {
-          unduh(`opname-${o.noRef.replace(/\//g, '-')}.csv`, toCSV(o.items.map(i => ({
+        teks: '📤 Ekspor CSV', kelas: 'btn-ghost', aksi: () => {
+          bagikanBerkas(`opname-${o.noRef.replace(/\//g, '-')}.csv`, toCSV(o.items.map(i => ({
             Produk: get('produk', i.produkId)?.nama || '', Sistem: i.sistem, Fisik: i.fisik,
             Selisih: i.selisih, HargaBeli: i.hargaBeli, NilaiSelisih: i.selisih * i.hargaBeli,
-          }))), 'text/csv');
-          sukses('Data opname diekspor');
+          }))), 'text/csv', 'Data opname diekspor');
         },
       },
       { teks: 'Tutup', kelas: 'btn-primary' },

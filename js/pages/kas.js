@@ -2,13 +2,13 @@
 import { db, save, setPengaturan } from '../core/store.js';
 import { catatKas, saldoKas, KATEGORI_KAS } from '../core/domain.js';
 import {
-  setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, kosongState, statTile, badge, formModal,
+  setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, kosongState, statTile, badge, formModal, bagikanBerkas,
 } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan } from '../core/router.js';
 import { bolehKeuangan, bolehUbah } from '../core/peran.js';
 import {
-  esc, rp, toNum, cocok, sum, debounce, fmtTgl, sortBy, todayISO, groupBy, unduh, toCSV,
+  esc, rp, toNum, cocok, sum, debounce, fmtTgl, sortBy, todayISO, groupBy, toCSV,
 } from '../core/utils.js';
 
 let f = { kode: 'bulan', dari: todayISO(), sampai: todayISO(), q: '', arah: 'semua' };
@@ -125,7 +125,7 @@ export function render(view) {
     <div class="toolbar">
       <div class="search-wrap grow"><input class="input" id="cari" placeholder="Cari keterangan / kategori..." value="${esc(f.q)}"></div>
       ${htmlPeriode(f.kode, f)}
-      <button class="btn btn-sm btn-ghost" id="ekspor">⬇️</button>
+      <button class="btn btn-sm btn-ghost" id="ekspor" title="Ekspor CSV">📤</button>
     </div>
     <div class="chips mb12" id="chipArah">
       ${[['semua', 'Semua'], ['masuk', 'Masuk'], ['keluar', 'Keluar']]
@@ -195,12 +195,11 @@ export function render(view) {
   };
   view.querySelector('#ekspor').onclick = () => {
     if (!semua.length) return gagal('Tidak ada data kas untuk diekspor');
-    unduh(`kas-${todayISO()}.csv`, toCSV(sortBy(semua, k => k.tanggal).map(k => ({
+    bagikanBerkas(`kas-${todayISO()}.csv`, toCSV(sortBy(semua, k => k.tanggal).map(k => ({
       Tanggal: k.tanggal, Arah: k.arah, Kategori: k.kategori, Keterangan: k.keterangan,
       Metode: k.metode, Masuk: k.arah === 'masuk' ? k.jumlah : 0, Keluar: k.arah === 'keluar' ? k.jumlah : 0,
       Sumber: k.sumber?.tipe || 'manual',
-    }))), 'text/csv');
-    sukses('Buku kas diekspor');
+    }))), 'text/csv', 'Buku kas diekspor');
   };
   box.addEventListener('click', e => {
     const row = e.target.closest('[data-id]'); if (!row) return;

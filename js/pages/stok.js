@@ -1,12 +1,12 @@
 /* pages/stok.js — ringkasan stok & kartu stok per produk */
 import { db, get } from '../core/store.js';
 import { stokKonsinyasi, nilaiPersediaan, produkMenipis, TIPE_MUTASI, rincianKonsinyasi } from '../core/domain.js';
-import { setJudul, setTopbar, setFab, kosongState, statTile, badge, sukses, gagal } from '../core/ui.js';
+import { setJudul, setTopbar, setFab, kosongState, statTile, badge, gagal, bagikanBerkas } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
 import { bolehKelola, bolehLihatModal } from '../core/peran.js';
 import {
-  esc, rp, num, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, unduh, toCSV,
+  esc, rp, num, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, toCSV,
 } from '../core/utils.js';
 
 let f = { q: '', tampil: 'semua', kode: '30hari', dari: todayISO(), sampai: todayISO() };
@@ -22,7 +22,7 @@ function halamanRingkas(view) {
     ? `${db.produk.length} produk · nilai ${rp(nilaiPersediaan())}`
     : `${db.produk.length} produk terdaftar`);
   setTopbar([
-    { teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: eksporStok },
+    { teks: 'Ekspor', ikon: '📤', kelas: 'btn-ghost btn-sm', onClick: eksporStok },
     ...(bolehKelola() ? [{ teks: 'Opname', ikon: '📋', onClick: () => pergi('opname/baru') }] : []),
   ]);
   setFab(bolehKelola() ? { ikon: '📥', teks: 'Stok masuk', onClick: () => pergi('pembelian/baru') } : null);
@@ -109,7 +109,7 @@ function halamanRingkas(view) {
 
 function eksporStok() {
   if (!db.produk.length) return gagal('Belum ada produk');
-  unduh(`stok-${todayISO()}.csv`, toCSV(db.produk.map(p => ({
+  bagikanBerkas(`stok-${todayISO()}.csv`, toCSV(db.produk.map(p => ({
     Kode: p.kode, Produk: p.nama, Merk: p.merk || '', Satuan: p.satuan || '',
     StokGudang: toNum(p.stok), DiMitra: stokKonsinyasi(p.id),
     Total: toNum(p.stok) + stokKonsinyasi(p.id),
@@ -118,8 +118,7 @@ function eksporStok() {
       ? { HargaBeli: toNum(p.hargaBeli), NilaiPersediaan: toNum(p.stok) * toNum(p.hargaBeli) }
       : {}),
     HargaAgen: toNum(p.hargaAgen), HargaReseller: toNum(p.hargaReseller),
-  })), null), 'text/csv');
-  sukses('Data stok diekspor');
+  })), null), 'text/csv', 'Data stok diekspor');
 }
 
 /* =========================================================
@@ -154,7 +153,7 @@ function halamanKartu(view, produkId) {
 
     <div class="toolbar">
       ${htmlPeriode(f.kode, f)}
-      <button class="btn btn-sm btn-ghost" id="ekspor">⬇️ Ekspor</button>
+      <button class="btn btn-sm btn-ghost" id="ekspor">📤 Ekspor</button>
     </div>
 
     ${titipan.length ? `
@@ -188,12 +187,11 @@ function halamanKartu(view, produkId) {
   pasangPeriode(view, f, () => segarkan());
   view.querySelector('#ekspor').onclick = () => {
     if (!mutasi.length) return gagal('Tidak ada mutasi untuk diekspor');
-    unduh(`kartu-stok-${p.kode}-${todayISO()}.csv`, toCSV(mutasi.map(m => ({
+    bagikanBerkas(`kartu-stok-${p.kode}-${todayISO()}.csv`, toCSV(mutasi.map(m => ({
       Tanggal: m.tanggal, Tipe: TIPE_MUTASI[m.tipe]?.label || m.tipe, Keterangan: m.ket,
       Referensi: m.ref, Masuk: m.qty > 0 ? m.qty : 0, Keluar: m.qty < 0 ? -m.qty : 0,
       SaldoSebelum: m.sebelum, SaldoSesudah: m.sesudah,
-    }))), 'text/csv');
-    sukses('Kartu stok diekspor');
+    }))), 'text/csv', 'Kartu stok diekspor');
   };
 }
 

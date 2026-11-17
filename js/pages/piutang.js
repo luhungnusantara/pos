@@ -2,12 +2,12 @@
 import { db, get } from '../core/store.js';
 import { daftarPiutang, totalPiutang, daftarHutang, totalHutang, sisaPiutang } from '../core/domain.js';
 import { modalBayarPiutang, modalBayarHutang } from '../core/bayar.js';
-import { setJudul, setTopbar, setFab, sukses, gagal, kosongState, statTile, badge, avatarEl } from '../core/ui.js';
+import { setJudul, setTopbar, setFab, gagal, kosongState, statTile, badge, avatarEl, bagikanBerkas } from '../core/ui.js';
 import { tampilkanStruk } from '../core/struk.js';
 import { segarkan } from '../core/router.js';
 import { bolehLihatKas, bolehKeuangan, bolehTerimaBayar, filterPenjualan } from '../core/peran.js';
 import {
-  esc, rp, num, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, selisihHari, groupBy, unduh, toCSV,
+  esc, rp, num, toNum, cocok, sum, debounce, fmtTglPendek, sortBy, todayISO, selisihHari, groupBy, toCSV,
 } from '../core/utils.js';
 
 let f = { tab: 'piutang', q: '', umur: 'semua' };
@@ -26,7 +26,7 @@ export function render(view) {
   if (!bolehLihatKas() && f.tab === 'hutang') f.tab = 'piutang';
 
   setJudul('Piutang & Hutang', `Piutang ${rp(totalPiutang())} · Hutang ${rp(totalHutang())}`);
-  setTopbar([{ teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: ekspor }]);
+  setTopbar([{ teks: 'Ekspor', ikon: '📤', kelas: 'btn-ghost btn-sm', onClick: ekspor }]);
   setFab(null);
 
   const jatuhTempo = piutang.filter(j => umurNota(j) > 0);
@@ -185,7 +185,6 @@ export function render(view) {
         Sisa: toNum(b.total) - toNum(b.dibayar),
       }));
     if (!rows.length) return gagal('Tidak ada data untuk diekspor');
-    unduh(`${f.tab}-${todayISO()}.csv`, toCSV(rows), 'text/csv');
-    sukses('Data diekspor');
+    bagikanBerkas(`${f.tab}-${todayISO()}.csv`, toCSV(rows), 'text/csv', 'Data diekspor');
   }
 }

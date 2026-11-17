@@ -3,11 +3,11 @@ import { get } from '../core/store.js';
 import {
   ringkasan, omzetHarian, produkTerlaris, rekapMitra, rekapKomisi, saldoKas, totalPiutang, totalHutang, nilaiPersediaan, stokKonsinyasi, penjualanAktif,
 } from '../core/domain.js';
-import { setJudul, setTopbar, setFab, kosongState, statTile, badge, sukses, gagal } from '../core/ui.js';
+import { setJudul, setTopbar, setFab, kosongState, statTile, badge, gagal, bagikanBerkas } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan } from '../core/router.js';
 import {
-  esc, rp, rpShort, num, toNum, sum, sortBy, fmtTgl, fmtTglPendek, todayISO, unduh, toCSV,
+  esc, rp, rpShort, num, toNum, sum, sortBy, fmtTgl, fmtTglPendek, todayISO, toCSV,
 } from '../core/utils.js';
 
 let f = { kode: 'bulan', dari: todayISO(), sampai: todayISO(), tab: 'ringkas' };
@@ -185,7 +185,7 @@ export function render(view) {
   setJudul('Laporan', label);
   setTopbar([
     { teks: 'Cetak', ikon: '🖨️', kelas: 'btn-ghost btn-sm', onClick: () => window.print() },
-    { teks: 'Ekspor', ikon: '⬇️', onClick: () => ekspor(dari, sampai) },
+    { teks: 'Ekspor', ikon: '📤', onClick: () => ekspor(dari, sampai) },
   ]);
   setFab(null);
 
@@ -243,7 +243,6 @@ export function render(view) {
       }));
     }
     if (!rows.length) return gagal('Tidak ada data untuk diekspor');
-    unduh(`${nama}-${todayISO()}.csv`, toCSV(rows), 'text/csv');
-    sukses('Laporan diekspor');
+    bagikanBerkas(`${nama}-${todayISO()}.csv`, toCSV(rows), 'text/csv', 'Laporan diekspor');
   }
 }

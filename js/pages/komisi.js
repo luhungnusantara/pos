@@ -2,12 +2,12 @@
 import { db, get } from '../core/store.js';
 import { rekapKomisi, komisiSales, komisiTertunda, bayarKomisi, tarifKomisi } from '../core/domain.js';
 import {
-  setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, ingat, kosongState, statTile, badge, avatarEl,
+  setJudul, setTopbar, setFab, modal, konfirmasi, sukses, gagal, ingat, kosongState, statTile, badge, avatarEl, bagikanBerkas,
 } from '../core/ui.js';
 import { htmlPeriode, pasangPeriode, hitungPeriode } from '../core/periode.js';
 import { segarkan, pergi } from '../core/router.js';
 import { bolehKeuangan, adalah, salesAktif } from '../core/peran.js';
-import { esc, rp, num, sum, fmtTgl, fmtTglPendek, sortBy, todayISO, unduh, toCSV } from '../core/utils.js';
+import { esc, rp, num, sum, fmtTgl, fmtTglPendek, sortBy, todayISO, toCSV } from '../core/utils.js';
 
 let f = { kode: 'bulan', dari: todayISO(), sampai: todayISO(), status: 'semua' };
 
@@ -29,7 +29,7 @@ function halamanRekap(view) {
   const totalPending = komisiTertunda();
 
   setJudul('Komisi Sales', `${label} · ${rp(totalKomisi)}`);
-  setTopbar([{ teks: 'Ekspor', ikon: '⬇️', kelas: 'btn-ghost btn-sm', onClick: () => ekspor(dari, sampai) }]);
+  setTopbar([{ teks: 'Ekspor', ikon: '📤', kelas: 'btn-ghost btn-sm', onClick: () => ekspor(dari, sampai) }]);
   setFab(null);
 
   view.innerHTML = `
@@ -135,7 +135,7 @@ function halamanDetail(view, salesId) {
     <div class="toolbar">
       ${htmlPeriode(f.kode, f)}
       ${pending > 0 && bolehKeuangan() ? '<button class="btn btn-sm btn-primary" id="bayar">💵 Bayar Komisi</button>' : ''}
-      <button class="btn btn-sm btn-ghost" id="ekspor">⬇️</button>
+      <button class="btn btn-sm btn-ghost" id="ekspor" title="Ekspor CSV">📤</button>
     </div>
     <div class="chips mb12" id="chipStatus">
       ${[['semua', 'Semua'], ['pending', 'Belum Dibayar'], ['dibayar', 'Sudah Dibayar']]
@@ -280,13 +280,12 @@ function modalBayar(s) {
 function ekspor(dari, sampai, salesId = null) {
   const arr = komisiSales(salesId, { dari, sampai });
   if (!arr.length) return gagal('Tidak ada data komisi untuk diekspor');
-  unduh(`komisi-${todayISO()}.csv`, toCSV(arr.map(k => ({
+  bagikanBerkas(`komisi-${todayISO()}.csv`, toCSV(arr.map(k => ({
     Tanggal: k.tanggal, Sales: get('sales', k.salesId)?.nama || '', NoNota: k.noRef || '',
     Mitra: get('mitra', k.mitraId)?.nama || '', Omzet: k.omzet, Laba: k.laba, Qty: k.qty, Bungkus: k.bungkus ?? '',
     Skema: LABEL_SKEMA[k.skema] || k.skema, NilaiSkema: k.nilaiSkema,
     Komisi: k.nilai, Status: k.status, TanggalBayar: k.tglBayar || '',
-  }))), 'text/csv');
-  sukses('Data komisi diekspor');
+  }))), 'text/csv', 'Data komisi diekspor');
 }
 
 export function render(view, params = []) {

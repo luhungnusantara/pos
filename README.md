@@ -457,6 +457,10 @@ sidebar 38px) sengaja memakai **mark** — glif tengahnya saja.
   menentukan komisi sales — pastikan isinya benar untuk setiap produk.
 - Kolom rupiah menerima angka polos; pemisah ribuan ditambahkan otomatis saat mengetik.
 - Semua laporan dapat diekspor ke **CSV** (pemisah `;`, siap dibuka di Excel Indonesia).
+  Di HP, tombol **📤 Ekspor** membuka **menu berbagi** — berkasnya bisa langsung dikirim ke
+  WhatsApp, disimpan ke Files/Drive, atau dibuka di Excel/Sheets. Unduhan biasa sulit ditemukan
+  di HP, dan di iPhone yang membuka aplikasi dari layar utama berkasnya malah tidak tersimpan.
+  Di PC berkas tetap diunduh ke folder Download.
 
 ---
 
